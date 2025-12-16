@@ -1,7 +1,28 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Leaf, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 
 const Footer = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleHashLink = (hash: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const element = document.querySelector(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      const element = document.querySelector(hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
   return (
     <footer className="bg-forest text-white py-16">
       <div className="container mx-auto px-4">
@@ -39,10 +60,39 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4 text-lg">Quick Links</h4>
             <ul className="space-y-3">
-              <li><Link to="/" className="text-white/70 hover:text-white transition-colors">Home</Link></li>
-              <li><Link to="/#features" className="text-white/70 hover:text-white transition-colors">Features</Link></li>
-              <li><Link to="/#impact" className="text-white/70 hover:text-white transition-colors">Impact</Link></li>
-              <li><Link to="/login" className="text-white/70 hover:text-white transition-colors">Login</Link></li>
+              <li>
+                <Link to="/" className="text-white/70 hover:text-white transition-colors">Home</Link>
+              </li>
+              <li>
+                <a 
+                  href="/#features" 
+                  onClick={(e) => handleHashLink('#features', e)}
+                  className="text-white/70 hover:text-white transition-colors cursor-pointer"
+                >
+                  Features
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="/#about" 
+                  onClick={(e) => handleHashLink('#about', e)}
+                  className="text-white/70 hover:text-white transition-colors cursor-pointer"
+                >
+                  About
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="/#impact" 
+                  onClick={(e) => handleHashLink('#impact', e)}
+                  className="text-white/70 hover:text-white transition-colors cursor-pointer"
+                >
+                  Impact
+                </a>
+              </li>
+              <li>
+                <Link to="/login" className="text-white/70 hover:text-white transition-colors">Login</Link>
+              </li>
             </ul>
           </div>
 
