@@ -554,43 +554,6 @@ const ClimateAdvisory = () => {
         )}
       </div>
 
-      {/* Additional Tips */}
-      <Card variant="gradient">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sprout className="w-5 h-5" />
-            This Week's Best Practices
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 bg-white/50 rounded-xl">
-              <h4 className="font-semibold mb-2">Irrigation</h4>
-              <p className="text-sm text-muted-foreground">
-                With rain expected mid-week, reduce irrigation by 30% on Monday and Tuesday to prevent overwatering.
-              </p>
-            </div>
-            <div className="p-4 bg-white/50 rounded-xl">
-              <h4 className="font-semibold mb-2">Pest Control</h4>
-              <p className="text-sm text-muted-foreground">
-                Warm and humid conditions may increase aphid activity. Monitor crops closely and consider preventive spraying.
-              </p>
-            </div>
-            <div className="p-4 bg-white/50 rounded-xl">
-              <h4 className="font-semibold mb-2">Harvesting</h4>
-              <p className="text-sm text-muted-foreground">
-                Ideal harvesting conditions on Saturday and Sunday. Plan to complete maize harvest before the next rain cycle.
-              </p>
-            </div>
-            <div className="p-4 bg-white/50 rounded-xl">
-              <h4 className="font-semibold mb-2">Soil Health</h4>
-              <p className="text-sm text-muted-foreground">
-                Good time to apply organic mulch after Thursday's rain to retain moisture and improve soil structure.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
