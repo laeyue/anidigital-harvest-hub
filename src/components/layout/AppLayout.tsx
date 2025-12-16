@@ -8,6 +8,10 @@ const AppLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const handleMenuToggle = () => {
+    setMobileOpen(prev => !prev);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Overlay */}
@@ -30,7 +34,7 @@ const AppLayout = () => {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+        <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} isMobile={true} />
       </div>
 
       {/* Main Content */}
@@ -40,7 +44,7 @@ const AppLayout = () => {
           collapsed ? "lg:ml-20" : "lg:ml-64"
         )}
       >
-        <AppHeader onMenuClick={() => setMobileOpen(!mobileOpen)} />
+        <AppHeader onMenuClick={handleMenuToggle} />
         <main className="p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>

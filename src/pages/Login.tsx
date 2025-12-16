@@ -35,6 +35,7 @@ const Login = () => {
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
+        duration: 3000,
       });
       navigate("/app/dashboard");
     }

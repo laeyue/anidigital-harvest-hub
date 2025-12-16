@@ -286,14 +286,21 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
   };
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-border/50 px-4 md:px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-border/50 px-4 md:px-6 flex items-center justify-between sticky top-0 z-50">
       {/* Left side */}
       <div className="flex items-center gap-4">
         <button
-          onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onMenuClick();
+          }}
+          className="lg:hidden p-2 rounded-lg hover:bg-muted active:bg-muted transition-colors relative z-50 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
+          aria-label="Toggle menu"
+          type="button"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-6 h-6 pointer-events-none" />
         </button>
         
         <div ref={searchContainerRef} className="hidden md:block relative">

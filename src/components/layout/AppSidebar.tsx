@@ -30,17 +30,19 @@ const navItems = [
 interface AppSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  isMobile?: boolean;
 }
 
-const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
+const AppSidebar = ({ collapsed, onToggle, isMobile = false }: AppSidebarProps) => {
   const location = useLocation();
   const { signOut } = useAuth();
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border z-40 transition-all duration-300 ease-in-out flex flex-col",
-        collapsed ? "w-20" : "w-64"
+        "h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex flex-col",
+        isMobile ? "w-64" : "fixed left-0 top-0 z-40",
+        !isMobile && (collapsed ? "w-20" : "w-64")
       )}
     >
       {/* Logo */}
@@ -66,6 +68,11 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => {
+                if (isMobile) {
+                  onToggle();
+                }
+              }}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
                 isActive
@@ -85,13 +92,15 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         })}
       </nav>
 
-      {/* Collapse Button */}
-      <button
-        onClick={onToggle}
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-      >
-        {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-      </button>
+      {/* Collapse Button - Desktop only */}
+      {!isMobile && (
+        <button
+          onClick={onToggle}
+          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+        >
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+      )}
 
       {/* Logout */}
       <div className="p-4 border-t border-sidebar-border overflow-hidden">
