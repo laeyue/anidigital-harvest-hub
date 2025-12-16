@@ -21,16 +21,41 @@ const Signup = () => {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     role: "",
     location: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate password confirmation
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError("Passwords do not match");
+      toast({
+        title: "Validation error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      toast({
+        title: "Validation error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordError("");
     setIsLoading(true);
 
     const { error } = await signUp(formData.email, formData.password, {
@@ -139,11 +164,37 @@ const Signup = () => {
                   type="password"
                   placeholder="••••••••"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    setPasswordError("");
+                  }}
                   className="pl-10"
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={formData.confirmPassword}
+                  onChange={(e) => {
+                    setFormData({ ...formData, confirmPassword: e.target.value });
+                    setPasswordError("");
+                  }}
+                  className={`pl-10 ${passwordError ? "border-destructive" : ""}`}
                   required
                 />
               </div>
+              {passwordError && (
+                <p className="text-sm text-destructive">{passwordError}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -170,7 +221,7 @@ const Signup = () => {
                 <Input
                   id="location"
                   type="text"
-                  placeholder="Nairobi, Kenya"
+                  placeholder="Manila, Philippines"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   className="pl-10"

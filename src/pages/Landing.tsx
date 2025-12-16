@@ -86,7 +86,7 @@ const Landing = () => {
             <div className="text-center lg:text-left animate-slide-up">
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-white/90 text-sm mb-6 border border-white/20">
                 <Leaf className="w-4 h-4 text-emerald" />
-                <span>Empowering 15,000+ farmers across Kenya</span>
+                <span>Empowering 15,000+ farmers across Philippines</span>
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
                 Grow Smarter with{" "}

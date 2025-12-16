@@ -160,13 +160,117 @@ If you're using Nginx Proxy Manager for SSL/HTTPS:
    - **Forward Port**: `80`
    - **Block Common Exploits**: ✓ Enabled
    - **Websockets Support**: ✓ Enabled (if needed)
-4. Go to **SSL** tab:
+4. **Save the proxy host first** (don't configure SSL yet)
+5. Verify the proxy host works via HTTP
+6. Then go to **SSL** tab:
    - **SSL Certificate**: Request a new SSL Certificate or use existing
    - **Force SSL**: ✓ Enabled
    - **HTTP/2 Support**: ✓ Enabled
-5. Save and your app will be accessible via HTTPS
+7. Save and your app will be accessible via HTTPS
 
 The container exposes port 80 internally, and NPM handles SSL termination and routing.
+
+### Troubleshooting NPM SSL Certificate "Internal Error"
+
+If you get an "Internal Error" when requesting SSL certificates in NPM:
+
+1. **DNS Configuration**:
+   - Ensure your domain's A record points to your server's public IP
+   - Wait for DNS propagation (can take up to 48 hours, usually 5-30 minutes)
+   - Verify DNS: `nslookup yourdomain.com` or use online DNS checker
+
+2. **Port Accessibility**:
+   - Port 80 (HTTP) must be accessible from the internet for Let's Encrypt validation
+   - Port 443 (HTTPS) must be open for SSL
+   - Check firewall: `sudo ufw status` or check your cloud provider's security groups
+
+3. **NPM Container Network**:
+   - Ensure NPM container can reach your app container
+   - Both containers should be on the same Docker network (or use container name resolution)
+   - Test connectivity: `docker exec npm-container ping anidigital-harvest-hub`
+
+4. **Let's Encrypt Rate Limits**:
+   - Let's Encrypt has rate limits (50 certs per registered domain per week)
+   - If you've hit the limit, wait or use staging environment first
+   - Check NPM logs: `docker logs npm-container`
+
+5. **Common Fixes**:
+   - **Restart NPM container**: `docker restart npm-container`
+   - **Clear NPM cache**: In NPM UI → System → Clear Cache
+   - **Use IP instead of container name**: Try using `172.x.x.x:80` (container IP) instead of container name
+   - **Check NPM logs**: Look for specific error messages in NPM container logs
+   - **Verify domain accessibility**: Visit `http://yourdomain.com` - should show your app (not NPM error page)
+
+6. **Alternative: Use IP Address**:
+   - If DNS isn't working, you can temporarily use IP:Port (9999) for testing
+   - For SSL, you'll need a valid domain name (Let's Encrypt requires domain validation)
+
+7. **Check NPM Logs**:
+   ```bash
+   docker logs npm-container-name
+   # Look for ACME/Let's Encrypt errors
+   ```
+
+### Fixing "Unable to validate JWS" Error
+
+This error means Certbot cannot communicate with Let's Encrypt servers. Common fixes:
+
+1. **Check Server Time/Date**:
+   ```bash
+   # Verify system time is correct
+   date
+   # If wrong, sync time:
+   sudo ntpdate -s time.nist.gov
+   # Or enable NTP:
+   sudo timedatectl set-ntp true
+   ```
+
+2. **Check Outbound Connectivity**:
+   ```bash
+   # Test if server can reach Let's Encrypt
+   curl -I https://acme-v02.api.letsencrypt.org/directory
+   # Should return HTTP 200
+   ```
+
+3. **Check DNS Resolution**:
+   ```bash
+   # Verify domain resolves correctly
+   nslookup anidigital.studentio.xyz
+   dig anidigital.studentio.xyz
+   ```
+
+4. **Firewall Rules**:
+   - Ensure outbound HTTPS (443) is allowed
+   - NPM needs to reach Let's Encrypt API servers
+   - Check: `sudo ufw status` or cloud provider security groups
+
+5. **NPM Container Network**:
+   - Ensure NPM container has internet access
+   - Test: `docker exec npm-container ping 8.8.8.8`
+   - Check DNS: `docker exec npm-container nslookup acme-v02.api.letsencrypt.org`
+
+6. **Restart NPM Container**:
+   ```bash
+   docker restart npm-container-name
+   ```
+
+7. **Try Staging Environment First**:
+   - In NPM SSL settings, enable "Use a staging environment"
+   - Test certificate request (staging has higher rate limits)
+   - Once working, switch back to production
+
+8. **Clear NPM SSL Cache**:
+   - In NPM UI: System → Clear Cache
+   - Or manually: `docker exec npm-container rm -rf /data/letsencrypt/archive/*`
+
+9. **Check Let's Encrypt Status**:
+   - Visit: https://letsencrypt.org/status
+   - Ensure their services are operational
+
+10. **Alternative: Use Cloudflare SSL**:
+    - If using Cloudflare, enable "Full" SSL mode
+    - Use Cloudflare Origin Certificate in NPM
+    - This bypasses Let's Encrypt validation issues
 
 ## Production Considerations
 

@@ -62,8 +62,8 @@ const Footer = () => {
             <h4 className="font-semibold mb-4 text-lg">Contact</h4>
             <ul className="space-y-3">
               <li className="text-white/70">support@ani-digital.com</li>
-              <li className="text-white/70">+254 700 123 456</li>
-              <li className="text-white/70">Nairobi, Kenya</li>
+              <li className="text-white/70">+63 900 123 4567</li>
+              <li className="text-white/70">Manila, Philippines</li>
             </ul>
           </div>
         </div>

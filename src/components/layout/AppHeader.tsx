@@ -1,4 +1,4 @@
-import { Bell, Search, Menu, Package, User, Store } from "lucide-react";
+import { Bell, Search, Menu, Package, User, Store, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,6 +33,8 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
   const [profile, setProfile] = useState<any>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ products: any[]; farmers: any[]; shops: any[] }>({ products: [], farmers: [], shops: [] });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -43,7 +45,19 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
     if (user) {
       loadProfile();
       loadNotifications();
+      loadUnreadMessages();
     }
+  }, [user]);
+
+  // Poll for unread messages every 5 seconds
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      loadUnreadMessages();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   // Close search dropdown when clicking outside
@@ -149,6 +163,15 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
     }
   };
 
+  const updateTotalUnreadCount = () => {
+    const notificationUnread = notifications.filter((n) => !n.read).length;
+    setUnreadCount(notificationUnread + unreadMessagesCount);
+  };
+
+  useEffect(() => {
+    updateTotalUnreadCount();
+  }, [notifications, unreadMessagesCount]);
+
   const loadNotifications = async () => {
     if (!user) return;
 
@@ -161,8 +184,6 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
 
     if (!error && data) {
       setNotifications(data);
-      const unread = data.filter((n) => !n.read).length;
-      setUnreadCount(unread);
     }
   };
 
@@ -187,6 +208,7 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
   const markAllAsRead = async () => {
     if (!user) return;
 
+    // Mark all notifications as read
     const { error } = await supabase
       .from('notifications')
       .update({ read: true })
@@ -195,7 +217,32 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
 
     if (!error) {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
+      // Note: Message unread counts are handled when viewing conversations
+      // The useEffect will automatically update the total count
+    }
+  };
+
+  const loadUnreadMessages = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase.rpc("get_user_conversations", {
+        p_user_id: user.id,
+      });
+
+      if (error) {
+        console.error('Error loading unread messages:', error);
+        return;
+      }
+
+      if (data) {
+        const conversationsData = data as any[];
+        setConversations(conversationsData);
+        const totalUnread = conversationsData.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+        setUnreadMessagesCount(totalUnread);
+      }
+    } catch (err) {
+      console.error('Error in loadUnreadMessages:', err);
     }
   };
 
@@ -362,11 +409,13 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full" />
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto">
+            <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto">
             <div className="flex items-center justify-between px-2 py-1.5">
               <DropdownMenuLabel>Notifications</DropdownMenuLabel>
               {unreadCount > 0 && (
@@ -379,7 +428,55 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
               )}
             </div>
             <DropdownMenuSeparator />
-            {notifications.length === 0 ? (
+            
+            {/* Unread Messages Section */}
+            {unreadMessagesCount > 0 && (
+              <>
+                {conversations
+                  .filter((conv) => conv.unread_count > 0)
+                  .slice(0, 5)
+                  .map((conv) => (
+                    <DropdownMenuItem
+                      key={`msg-${conv.id}`}
+                      className="flex flex-col items-start gap-1 py-3 cursor-pointer bg-muted/50"
+                      onClick={() => navigate(`/app/chat/${conv.id}`)}
+                    >
+                      <div className="flex items-start justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4 text-primary" />
+                          <span className="font-medium">
+                            {conv.other_participant?.name || conv.other_participant?.email || "User"}
+                          </span>
+                        </div>
+                        {conv.unread_count > 0 && (
+                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                            {conv.unread_count}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {conv.last_message_preview || "New message"}
+                      </span>
+                      {conv.last_message_at && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(conv.last_message_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                {notifications.length > 0 && (
+                  <DropdownMenuSeparator />
+                )}
+              </>
+            )}
+
+            {/* Regular Notifications */}
+            {notifications.length === 0 && unreadMessagesCount === 0 ? (
               <div className="p-6 text-center">
                 <p className="text-sm text-muted-foreground">No notifications</p>
               </div>
@@ -438,6 +535,19 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/app/finances">Financial Summary</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/app/chat" className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Messages</span>
+                </div>
+                {unreadMessagesCount > 0 && (
+                  <span className="ml-auto inline-flex items-center justify-center min-w-[20px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                    {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                  </span>
+                )}
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="text-destructive">

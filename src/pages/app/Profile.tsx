@@ -257,7 +257,6 @@ const Profile = () => {
             </div>
             <div className="text-center sm:text-left">
               <h2 className="text-xl font-semibold">{formData.name || "Loading..."}</h2>
-              <p className="text-muted-foreground">{isLoadingProfile ? "Loading..." : "Farmer"}</p>
               {!isLoadingProfile && (
                 <p className="text-sm text-muted-foreground mt-1">
                   {formData.email}
