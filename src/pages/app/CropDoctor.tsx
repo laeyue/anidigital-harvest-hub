@@ -1,16 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Camera, CheckCircle, AlertTriangle, Leaf, Pill, Shield } from "lucide-react";
-import { useState, useRef } from "react";
+import { Upload, Camera, CheckCircle, AlertTriangle, Leaf, Pill, Shield, History, Clock } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   identifyCropDisease,
   getIdentificationResult,
   sendFeedback,
   isApiConfigured as isPlantIdConfigured,
 } from "@/lib/plantIdApi";
+import { formatDistanceToNow } from "date-fns";
 
 interface Diagnosis {
   disease: string;
@@ -19,6 +26,18 @@ interface Diagnosis {
   affected_area: string;
   treatments: string[];
   prevention_tips: string[];
+}
+
+interface DiagnosisHistory {
+  id: string;
+  image_url: string;
+  disease: string;
+  confidence: number;
+  severity: string;
+  affected_area: string;
+  treatments: string[];
+  prevention_tips: string[];
+  created_at: string;
 }
 
 const CropDoctor = () => {
@@ -35,6 +54,38 @@ const CropDoctor = () => {
   const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [diagnosisHistory, setDiagnosisHistory] = useState<DiagnosisHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      loadDiagnosisHistory();
+    }
+  }, [user]);
+
+  const loadDiagnosisHistory = async () => {
+    if (!user) return;
+
+    setIsLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('crop_diagnoses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading diagnosis history:', error);
+        return;
+      }
+
+      setDiagnosisHistory(data || []);
+    } catch (error) {
+      console.error('Error loading diagnosis history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -188,6 +239,9 @@ const CropDoctor = () => {
       setDiagnosis(mappedDiagnosis);
       setIsAnalyzing(false);
       setShowResults(true);
+      
+      // Reload history to include the new diagnosis
+      loadDiagnosisHistory();
     } catch (error: any) {
       setIsAnalyzing(false);
       toast({
@@ -473,6 +527,112 @@ const CropDoctor = () => {
           )}
         </div>
       </div>
+
+      {/* Diagnosis History */}
+      {diagnosisHistory.length > 0 && (
+        <Card variant="glass">
+          <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <History className="w-4 h-4 sm:w-5 sm:h-5" />
+              Past Diagnoses
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            {isLoadingHistory ? (
+              <div className="text-center py-6 sm:py-8">
+                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-xs sm:text-sm text-muted-foreground">Loading history...</p>
+              </div>
+            ) : (
+              <Accordion type="single" collapsible className="w-full">
+                {diagnosisHistory.map((item) => (
+                  <AccordionItem key={item.id} value={item.id} className="border-border">
+                    <AccordionTrigger className="hover:no-underline px-2 sm:px-4">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 text-left">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex-shrink-0">
+                          <img
+                            src={item.image_url}
+                            alt="Crop diagnosis"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                            <p className="font-semibold text-sm sm:text-base truncate">{item.disease}</p>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium self-start sm:self-auto">
+                              {item.confidence}%
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-2 sm:px-4">
+                      <div className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                        <div className="relative rounded-xl overflow-hidden">
+                          <img
+                            src={item.image_url}
+                            alt="Crop diagnosis"
+                            className="w-full h-48 sm:h-64 object-cover"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-xl">
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-2">Severity</p>
+                            <p className="text-sm sm:text-base font-semibold break-words">{item.severity}</p>
+                          </div>
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-xl">
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-2">Affected Area</p>
+                            <p className="text-sm sm:text-base font-semibold break-words">{item.affected_area}</p>
+                          </div>
+                        </div>
+
+                        {item.treatments && item.treatments.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-sm sm:text-base mb-2 flex items-center gap-2">
+                              <Pill className="w-4 h-4 text-primary flex-shrink-0" />
+                              <span>Treatment Recommendations</span>
+                            </h4>
+                            <ul className="space-y-2">
+                              {item.treatments.map((treatment, i) => (
+                                <li key={i} className="flex items-start gap-2 p-2 sm:p-3 bg-primary/5 rounded-lg">
+                                  <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                                  <span className="text-xs sm:text-sm leading-relaxed break-words">{treatment}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {item.prevention_tips && item.prevention_tips.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-sm sm:text-base mb-2 flex items-center gap-2">
+                              <Shield className="w-4 h-4 text-emerald flex-shrink-0" />
+                              <span>Prevention Tips</span>
+                            </h4>
+                            <ul className="space-y-2">
+                              {item.prevention_tips.map((tip, i) => (
+                                <li key={i} className="flex items-start gap-2 p-2 sm:p-3 bg-emerald/5 rounded-lg">
+                                  <Leaf className="w-4 h-4 text-emerald flex-shrink-0 mt-0.5" />
+                                  <span className="text-xs sm:text-sm leading-relaxed break-words">{tip}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

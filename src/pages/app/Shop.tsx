@@ -10,13 +10,23 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Mail, Star, ShoppingCart, Package, Edit2, Plus, Upload, X, MessageCircle } from "lucide-react";
+import { MapPin, Mail, Star, ShoppingCart, Package, Edit2, Plus, Upload, X, MessageCircle, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -95,6 +105,8 @@ const Shop = () => {
   const [isUploadingProduct, setIsUploadingProduct] = useState(false);
   const productFileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (shopId) {
@@ -303,6 +315,83 @@ const Shop = () => {
       });
     } finally {
       setIsProcessingPurchase(false);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productToDelete || !user || !shop) return;
+
+    setIsDeleting(true);
+    try {
+      // Check if there are any orders for this product
+      const { data: orders, error: ordersError } = await supabase
+        .from('chat_orders')
+        .select('id')
+        .eq('product_id', productToDelete.id)
+        .limit(1);
+
+      if (ordersError) {
+        throw ordersError;
+      }
+
+      if (orders && orders.length > 0) {
+        toast({
+          title: "Cannot Delete Product",
+          description: "This product has existing orders and cannot be deleted. You can set the quantity to 0 to stop new purchases.",
+          variant: "destructive",
+        });
+        setProductToDelete(null);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Delete image from storage if it exists
+      if (productToDelete.image_url) {
+        try {
+          // Extract file path from URL
+          const urlParts = productToDelete.image_url.split('/');
+          const fileName = urlParts.slice(-2).join('/'); // Get user_id/filename
+          
+          const { error: storageError } = await supabase.storage
+            .from('product-images')
+            .remove([fileName]);
+
+          if (storageError) {
+            console.error('Error deleting image:', storageError);
+            // Continue with product deletion even if image deletion fails
+          }
+        } catch (err) {
+          console.error('Error processing image deletion:', err);
+        }
+      }
+
+      // Delete product from database
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productToDelete.id)
+        .eq('seller_id', user.id); // Extra safety check
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Product deleted",
+        description: "Your product has been removed from your shop.",
+      });
+
+      setProductToDelete(null);
+      loadShop(); // Reload shop to refresh products
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete product",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -699,6 +788,18 @@ const Shop = () => {
                       PHP {Number(product.price).toLocaleString()}/{product.unit}
                     </span>
                   </div>
+                  {user && user.id === shop?.owner_id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProductToDelete(product);
+                      }}
+                      className="absolute top-3 left-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-colors shadow-lg"
+                      title="Delete product"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
@@ -964,6 +1065,28 @@ const Shop = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProduct}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
