@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  web:
+    container_name: anidigital-harvest-hub
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_AGROMONITORING_API_KEY: ${VITE_AGROMONITORING_API_KEY}
+        VITE_PLANT_ID_API_KEY: ${VITE_PLANT_ID_API_KEY}
+    ports:
+      - "9999:80"
+    restart: always
+
