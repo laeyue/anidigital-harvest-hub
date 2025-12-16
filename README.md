@@ -1,22 +1,69 @@
-# Welcome to your Lovable project
+# AniDigital Harvest Hub
+
+A comprehensive agricultural platform for farmers in the Philippines, providing marketplace, crop diagnosis, financial tracking, and climate advisory services.
+
+## Features
+
+- **User Authentication**: Secure login and registration with Supabase Auth
+- **Marketplace**: Buy and sell agricultural products
+- **Crop Doctor**: AI-powered crop disease diagnosis with image upload
+- **Financial Tracking**: Track income, expenses, and profits
+- **Climate Advisory**: Real-time weather data and farming recommendations via Agromonitoring API
+- **Profile Management**: Manage farm details and personal information
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js & npm installed
+- Supabase account and project
+- Agromonitoring API key (for weather features)
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Agromonitoring API Key (optional, for weather features)
+# Get your API key from: https://agromonitoring.com/api
+VITE_AGROMONITORING_API_KEY=your_agromonitoring_api_key
+
+# Plant.id Crop Health API Key (optional, for Crop Doctor features)
+# Get your API key from: https://crop.kindwise.com/api/v1
+VITE_PLANT_ID_API_KEY=your_plant_id_api_key
+```
+
+### Installation
+
+```sh
+# Step 1: Clone the repository
+git clone <YOUR_GIT_URL>
+
+# Step 2: Navigate to the project directory
+cd anidigital-harvest-hub
+
+# Step 3: Install dependencies
+npm install
+
+# Step 4: Create .env file with your API keys (see above)
+
+# Step 5: Start the development server
+npm run dev
+```
 
 ## Project info
-
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -62,12 +109,50 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+You can deploy this project using any static hosting service like Vercel, Netlify, or GitHub Pages.
 
-## Can I connect a custom domain to my Lovable project?
+## Seeding Mock Data
 
-Yes, you can!
+The application includes seed data for testing. Kent's account has been pre-seeded with:
+- 5 marketplace products
+- 7 financial transactions
+- 3 notifications
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Creating Test Users (with email confirmation disabled)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+To create 4 additional test users with seeded data, run this in your browser console:
+
+```javascript
+import { createAndSeedTestUsers } from '@/lib/createTestUsers';
+await createAndSeedTestUsers();
+```
+
+This will automatically:
+1. Create user accounts for 4 test users
+2. Create their profiles with Kapatagan, Lanao Del Norte location
+3. Seed 2-3 marketplace products for each user
+4. Seed 3-5 financial transactions for each user
+5. Seed notifications for each user
+
+**Test users that will be created:**
+- Maria Santos (maria.santos@example.com / Test123!@#) - Rice and vegetables
+- Juan Dela Cruz (juan.delacruz@example.com / Test123!@#) - Fruits
+- Rosa Garcia (rosa.garcia@example.com / Test123!@#) - Vegetables
+- Carlos Reyes (carlos.reyes@example.com / Test123!@#) - Corn and beans
+
+All users are from **Kapatagan, Lanao Del Norte** and will have marketplace listings.
+
+### Alternative: Manual Seeding
+
+If users already exist, you can seed data individually:
+
+```javascript
+import { seedDataForUserByEmail } from '@/lib/seedHelper';
+await seedDataForUserByEmail('user@example.com');
+```
+
+Or seed data for all mock users at once:
+```javascript
+import { seedDataForAllMockUsers } from '@/lib/seedHelper';
+await seedDataForAllMockUsers();
+```

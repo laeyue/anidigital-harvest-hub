@@ -1,53 +1,262 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { mockDiagnosis } from "@/lib/mockData";
 import { Upload, Camera, CheckCircle, AlertTriangle, Leaf, Pill, Shield } from "lucide-react";
 import { useState, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import {
+  identifyCropDisease,
+  getIdentificationResult,
+  sendFeedback,
+  isApiConfigured as isPlantIdConfigured,
+} from "@/lib/plantIdApi";
+
+interface Diagnosis {
+  disease: string;
+  confidence: number;
+  severity: string;
+  affected_area: string;
+  treatments: string[];
+  prevention_tips: string[];
+}
 
 const CropDoctor = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string);
-        analyzeImage();
       };
       reader.readAsDataURL(file);
+      await analyzeImage(file);
     }
   };
 
-  const analyzeImage = () => {
+  const analyzeImage = async (file: File) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to analyze images",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isPlantIdConfigured()) {
+      toast({
+        title: "Configuration required",
+        description: "Plant.id API key is not configured. Please add VITE_PLANT_ID_API_KEY to your .env file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setShowResults(false);
-    // Simulate AI analysis
-    setTimeout(() => {
+
+    try {
+      // Upload image to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('crop-images')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('crop-images')
+        .getPublicUrl(fileName);
+
+      setImageUrl(publicUrl);
+
+      // Call Plant.id API to identify crop disease
+      const { access_token } = await identifyCropDisease(file);
+      setAccessToken(access_token);
+
+      // Fetch detailed result with disease info
+      const result = await getIdentificationResult(access_token, [
+        "treatment",
+        "symptoms",
+        "severity",
+        "description",
+        "common_names",
+      ]);
+
+      const diseaseSuggestions =
+        result?.result?.disease?.suggestions && Array.isArray(result.result.disease.suggestions)
+          ? result.result.disease.suggestions
+          : [];
+
+      if (!diseaseSuggestions.length) {
+        setDiagnosis({
+          disease: "No disease detected",
+          confidence: 0,
+          severity: "Unknown",
+          affected_area: "Unknown",
+          treatments: ["No specific treatment recommended. The crop appears healthy or unclear."],
+          prevention_tips: [
+            "Monitor the crop regularly for any signs of disease.",
+            "Ensure proper spacing, watering, and nutrition.",
+          ],
+        });
+        setIsAnalyzing(false);
+        setShowResults(true);
+        return;
+      }
+
+      const top = diseaseSuggestions[0];
+      const details = top.details || {};
+      const probability = typeof top.probability === "number" ? top.probability * 100 : 0;
+
+      const treatmentDetails = details.treatment || {};
+      const treatments: string[] = [];
+      const preventionTips: string[] = [];
+
+      const pushFrom = (source: any, target: string[]) => {
+        if (!source) return;
+        if (Array.isArray(source)) {
+          source.forEach((item) => {
+            if (typeof item === "string") target.push(item);
+          });
+        } else if (typeof source === "string") {
+          target.push(source);
+        }
+      };
+
+      pushFrom(treatmentDetails.biological, treatments);
+      pushFrom(treatmentDetails.chemical, treatments);
+      pushFrom(treatmentDetails.prevention, treatments);
+
+      pushFrom(treatmentDetails.prevention, preventionTips);
+
+      const mappedDiagnosis: Diagnosis = {
+        disease: top.name || top.scientific_name || "Unknown disease",
+        confidence: Number(probability.toFixed(2)),
+        severity: details.severity || "Unknown",
+        affected_area: "Leaves",
+        treatments:
+          treatments.length > 0
+            ? treatments
+            : ["Follow general best practices: remove affected parts and improve growing conditions."],
+        prevention_tips:
+          preventionTips.length > 0
+            ? preventionTips
+            : [
+                "Rotate crops regularly to prevent disease build-up.",
+                "Use disease-resistant varieties when available.",
+              ],
+      };
+
+      // Save diagnosis to database
+      const { error: dbError } = await supabase.from("crop_diagnoses").insert({
+        user_id: user.id,
+        image_url: publicUrl,
+        disease: mappedDiagnosis.disease,
+        confidence: mappedDiagnosis.confidence,
+        severity: mappedDiagnosis.severity,
+        affected_area: mappedDiagnosis.affected_area,
+        treatments: mappedDiagnosis.treatments,
+        prevention_tips: mappedDiagnosis.prevention_tips,
+      });
+
+      if (dbError) {
+        console.error("Error saving diagnosis:", dbError);
+      }
+
+      setDiagnosis(mappedDiagnosis);
       setIsAnalyzing(false);
       setShowResults(true);
-    }, 2500);
+    } catch (error: any) {
+      setIsAnalyzing(false);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to analyze image. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string);
-        analyzeImage();
       };
       reader.readAsDataURL(file);
+      await analyzeImage(file);
     }
   };
 
   const resetUpload = () => {
     setUploadedImage(null);
+    setImageFile(null);
     setShowResults(false);
+    setDiagnosis(null);
+    setImageUrl(null);
+    setAccessToken(null);
+    setFeedbackRating(null);
+    setFeedbackComment("");
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!accessToken) {
+      toast({
+        title: "Feedback unavailable",
+        description: "No diagnosis reference found for feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!feedbackRating) {
+      toast({
+        title: "Rating required",
+        description: "Please select a rating before submitting feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmittingFeedback(true);
+      await sendFeedback(accessToken, feedbackRating, feedbackComment);
+      toast({
+        title: "Thank you!",
+        description: "Your feedback was submitted to improve future diagnoses.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Feedback failed",
+        description: error.message || "Could not submit feedback. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   return (
@@ -136,22 +345,22 @@ const CropDoctor = () => {
                     <div className="flex items-center justify-between p-4 bg-accent/10 rounded-xl">
                       <div>
                         <p className="text-sm text-muted-foreground">Detected Disease</p>
-                        <p className="text-xl font-bold text-accent">{mockDiagnosis.disease}</p>
+                        <p className="text-xl font-bold text-accent">{diagnosis?.disease}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">Confidence</p>
-                        <p className="text-xl font-bold text-primary">{mockDiagnosis.confidence}%</p>
+                        <p className="text-xl font-bold text-primary">{diagnosis?.confidence}%</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 bg-muted/50 rounded-xl">
                         <p className="text-sm text-muted-foreground">Severity</p>
-                        <p className="font-semibold">{mockDiagnosis.severity}</p>
+                        <p className="font-semibold">{diagnosis?.severity}</p>
                       </div>
                       <div className="p-4 bg-muted/50 rounded-xl">
                         <p className="text-sm text-muted-foreground">Affected Area</p>
-                        <p className="font-semibold">{mockDiagnosis.affectedArea}</p>
+                        <p className="font-semibold">{diagnosis?.affected_area}</p>
                       </div>
                     </div>
                   </div>
@@ -168,7 +377,7 @@ const CropDoctor = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {mockDiagnosis.treatments.map((treatment, i) => (
+                    {diagnosis?.treatments.map((treatment, i) => (
                       <li key={i} className="flex items-start gap-3 p-3 bg-primary/5 rounded-xl">
                         <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm">{treatment}</span>
@@ -188,7 +397,7 @@ const CropDoctor = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {mockDiagnosis.prevention.map((tip, i) => (
+                    {diagnosis?.prevention_tips.map((tip, i) => (
                       <li key={i} className="flex items-start gap-3 p-3 bg-emerald/5 rounded-xl">
                         <Leaf className="w-5 h-5 text-emerald flex-shrink-0 mt-0.5" />
                         <span className="text-sm">{tip}</span>
@@ -197,6 +406,57 @@ const CropDoctor = () => {
                   </ul>
                 </CardContent>
               </Card>
+
+              {/* Feedback */}
+              {accessToken && (
+                <Card variant="glass">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-primary" />
+                      Was this diagnosis helpful?
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setFeedbackRating(star)}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border text-sm ${
+                              feedbackRating && feedbackRating >= star
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-muted-foreground border-border"
+                            }`}
+                          >
+                            {star}
+                          </button>
+                        ))}
+                        {feedbackRating && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {feedbackRating} / 5
+                          </span>
+                        )}
+                      </div>
+                      <textarea
+                        className="w-full min-h-[80px] text-sm rounded-md border border-input bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        placeholder="Optional: add a short comment about the diagnosis accuracy..."
+                        value={feedbackComment}
+                        onChange={(e) => setFeedbackComment(e.target.value)}
+                      />
+                      <Button
+                        variant="hero"
+                        className="w-full"
+                        onClick={handleSubmitFeedback}
+                        disabled={submittingFeedback}
+                      >
+                        {submittingFeedback ? "Submitting..." : "Submit Feedback"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           ) : (
             <Card variant="glass" className="h-full flex items-center justify-center min-h-[400px]">

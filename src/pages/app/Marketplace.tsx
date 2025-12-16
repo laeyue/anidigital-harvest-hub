@@ -18,42 +18,468 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { mockProducts, categories } from "@/lib/mockData";
-import { Search, Plus, MapPin, Star, ShoppingCart, Filter } from "lucide-react";
-import { useState } from "react";
+const categories = [
+  { value: "all", label: "All Categories" },
+  { value: "vegetables", label: "Vegetables" },
+  { value: "fruits", label: "Fruits" },
+  { value: "grains", label: "Grains" },
+  { value: "dairy", label: "Dairy" },
+  { value: "livestock", label: "Livestock" },
+];
+import { Search, Plus, MapPin, Star, ShoppingCart, Filter, Store, ExternalLink, Upload, X, MessageCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useSearchParams } from "react-router-dom";
+import { createTransactionNotification } from "@/lib/notifications";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  unit: string;
+  quantity: number;
+  category: string;
+  image_url: string | null;
+  location: string | null;
+  rating: number;
+  seller_id: string;
+  profiles?: {
+    name: string;
+  };
+}
+
+// Component to link to shop by seller_id
+const ShopLink = ({ sellerId }: { sellerId: string }) => {
+  const [shopId, setShopId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadShop = async () => {
+      const { data } = await supabase
+        .from('shops')
+        .select('id')
+        .eq('owner_id', sellerId)
+        .single();
+      if (data) {
+        setShopId(data.id);
+      }
+      setIsLoading(false);
+    };
+    loadShop();
+  }, [sellerId]);
+
+  if (isLoading || !shopId) return null;
+
+  return (
+    <Link 
+      to={`/app/shop/${shopId}`}
+      onClick={(e) => e.stopPropagation()}
+      className="text-primary hover:underline text-xs flex items-center gap-1"
+    >
+      <Store className="w-3 h-3" />
+      Visit Shop
+    </Link>
+  );
+};
 
 const Marketplace = () => {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 200]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    unit: "kg",
+    quantity: "",
+    category: "vegetables",
+  });
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
+  const [isUploadingProduct, setIsUploadingProduct] = useState(false);
+  const productFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [userShop, setUserShop] = useState<any>(null);
 
-  const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadUserShop();
+    }
+  }, [user]);
+
+  const loadUserShop = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('shops')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single();
+    setUserShop(data);
+  };
+
+  // Sync search query from URL params
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchQuery(decodeURIComponent(searchParam));
+    }
+  }, [searchParams]);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        profiles:seller_id (
+          name
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive",
+      });
+    } else {
+      setProducts(data || []);
+    }
+    setIsLoading(false);
+  };
+
+  const filteredProducts = products.filter((product) => {
+    // Enhanced search: search in name, description, and seller name
+    const searchLower = searchQuery.toLowerCase().trim();
+    const matchesSearch = searchLower === "" || 
+      product.name.toLowerCase().includes(searchLower) ||
+      (product.description && product.description.toLowerCase().includes(searchLower)) ||
+      (product.profiles?.name && product.profiles.name.toLowerCase().includes(searchLower));
+    
     const matchesCategory =
       selectedCategory === "all" ||
       product.category.toLowerCase() === selectedCategory.toLowerCase();
-    const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+    const matchesPrice = Number(product.price) >= priceRange[0] && Number(product.price) <= priceRange[1];
     return matchesSearch && matchesCategory && matchesPrice;
   });
 
-  const handleBuy = (productName: string) => {
-    toast({
-      title: "Added to cart!",
-      description: `${productName} has been added to your cart.`,
-    });
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [purchaseQuantity, setPurchaseQuantity] = useState(1);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
+
+  const handleBuy = (product: Product) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to make a purchase.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (product.seller_id === user.id) {
+      toast({
+        title: "Cannot Purchase",
+        description: "You cannot purchase your own product.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedProduct(product);
+    setPurchaseQuantity(1);
+    setIsPurchaseDialogOpen(true);
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleMessageSeller = async (product: Product) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to send a message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (product.seller_id === user.id) {
+      toast({
+        title: "This is your listing",
+        description: "You cannot start a conversation with yourself.",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc("get_or_create_conversation", {
+        p_user_id: user.id,
+        p_other_user_id: product.seller_id,
+        p_context_type: "product",
+        p_context_id: product.id,
+      });
+
+      if (error || !data) {
+        throw error || new Error("Failed to open conversation");
+      }
+
+      navigate(`/app/chat/${(data as any).id}`);
+    } catch (err) {
+      console.error("Error opening conversation:", err);
+      toast({
+        title: "Error",
+        description: "Failed to open chat with seller.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePurchase = async () => {
+    if (!user || !selectedProduct) return;
+
+    setIsProcessingPurchase(true);
+
+    try {
+      const totalAmount = selectedProduct.price * purchaseQuantity;
+
+      // Check if product has enough quantity
+      if (purchaseQuantity > selectedProduct.quantity) {
+        toast({
+          title: "Insufficient Stock",
+          description: `Only ${selectedProduct.quantity} ${selectedProduct.unit} available.`,
+          variant: "destructive",
+        });
+        setIsProcessingPurchase(false);
+        return;
+      }
+
+      // Create or reuse conversation for this buyer/seller
+      const { data: conv, error: convError } = await supabase.rpc("get_or_create_conversation", {
+        p_user_id: user.id,
+        p_other_user_id: selectedProduct.seller_id,
+        p_context_type: "product",
+        p_context_id: selectedProduct.id,
+      });
+
+      if (convError || !conv) {
+        throw convError || new Error("Failed to open conversation");
+      }
+
+      const conversationId = (conv as any).id as string;
+
+      // Create chat_order record
+      const { data: order, error: orderError } = await supabase
+        .from("chat_orders")
+        .insert({
+          conversation_id: conversationId,
+          product_id: selectedProduct.id,
+          product_name: selectedProduct.name,
+          quantity: purchaseQuantity,
+          unit: selectedProduct.unit,
+          unit_price: selectedProduct.price,
+          total_amount: totalAmount,
+          buyer_id: user.id,
+          seller_id: selectedProduct.seller_id,
+          status: "requested",
+        })
+        .select("*")
+        .single();
+
+      if (orderError || !order) {
+        throw orderError || new Error("Failed to create chat order");
+      }
+
+      // Send an order message into the chat so seller sees the context
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: `order:${order.id}`,
+      });
+
+      toast({
+        title: "Order sent via chat",
+        description: "Your order details were sent to the seller. Continue in chat to arrange payment.",
+      });
+
+      setIsPurchaseDialogOpen(false);
+      setSelectedProduct(null);
+      navigate(`/app/chat/${(conv as any).id}`);
+    } catch (error: any) {
+      console.error('Error processing purchase:', error);
+      toast({
+        title: "Purchase Failed",
+        description: error.message || "An error occurred while processing your purchase.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPurchase(false);
+    }
+  };
+
+  const handleProductImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setProductImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProductImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveProductImage = () => {
+    setProductImageFile(null);
+    setProductImagePreview(null);
+    if (productFileInputRef.current) {
+      productFileInputRef.current.value = '';
+    }
+  };
+
+  const handleProductImageDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDialogOpen(false);
-    toast({
-      title: "Product listed!",
-      description: "Your product has been listed on the marketplace.",
-    });
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setProductImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProductImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to list products",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingProduct(true);
+    let imageUrl: string | null = null;
+
+    try {
+      // Upload image if provided
+      if (productImageFile) {
+        const fileExt = productImageFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, productImageFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+      }
+
+      const { error } = await supabase
+        .from('products')
+        .insert({
+          seller_id: user.id,
+          name: formData.name,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          unit: formData.unit,
+          quantity: parseInt(formData.quantity),
+          category: formData.category,
+          image_url: imageUrl,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      setIsDialogOpen(false);
+      setFormData({
+        name: "",
+        description: "",
+        price: "",
+        unit: "kg",
+        quantity: "",
+        category: "vegetables",
+      });
+      handleRemoveProductImage();
+      loadProducts();
+      toast({
+        title: "Product listed!",
+        description: "Your product has been listed on the marketplace.",
+      });
+    } catch (error: any) {
+      console.error('Error adding product:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to list product",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingProduct(false);
+    }
   };
 
   return (
@@ -64,33 +490,56 @@ const Marketplace = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Marketplace</h1>
           <p className="text-muted-foreground">Buy and sell fresh farm produce</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="hero">
-              <Plus className="w-4 h-4" />
-              Sell Item
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
+        <div className="flex items-center gap-3">
+          {user && (
+            <Link to={userShop ? `/app/shop/${userShop.id}` : "/app/my-shop"}>
+              <Button variant="outline">
+                <Store className="w-4 h-4 mr-2" />
+                {userShop ? "My Shop" : "Create Shop"}
+              </Button>
+            </Link>
+          )}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="hero">
+                <Plus className="w-4 h-4" />
+                Sell Item
+              </Button>
+            </DialogTrigger>
+          <DialogContent className="sm:max-w-md max-h-[85vh] w-[calc(100vw-2rem)] m-4 overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>List a New Product</DialogTitle>
               <DialogDescription>
                 Add your product details to list it on the marketplace.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddProduct} className="space-y-4">
+            <div className="overflow-y-auto flex-1 pr-1 scrollbar-hide -mx-2 px-2">
+              <form onSubmit={handleAddProduct} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="productName">Product Name</Label>
-                <Input id="productName" placeholder="e.g., Fresh Tomatoes" required />
+                <Input 
+                  id="productName" 
+                  placeholder="e.g., Fresh Tomatoes" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required 
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price (KES)</Label>
-                  <Input id="price" type="number" placeholder="45" required />
+                  <Label htmlFor="price">Price (PHP)</Label>
+                  <Input 
+                    id="price" 
+                    type="number" 
+                    placeholder="45" 
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    required 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="unit">Unit</Label>
-                  <Select defaultValue="kg">
+                  <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -105,41 +554,91 @@ const Marketplace = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="quantity">Available Quantity</Label>
-                <Input id="quantity" type="number" placeholder="500" required />
+                <Input 
+                  id="quantity" 
+                  type="number" 
+                  placeholder="500" 
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  required 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select defaultValue="vegetables">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vegetables">Vegetables</SelectItem>
-                    <SelectItem value="fruits">Fruits</SelectItem>
-                    <SelectItem value="grains">Grains</SelectItem>
-                    <SelectItem value="dairy">Dairy</SelectItem>
-                  </SelectContent>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vegetables">Vegetables</SelectItem>
+                      <SelectItem value="fruits">Fruits</SelectItem>
+                      <SelectItem value="grains">Grains</SelectItem>
+                      <SelectItem value="dairy">Dairy</SelectItem>
+                    </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Describe your product..." />
+                <Textarea 
+                  id="description" 
+                  placeholder="Describe your product..." 
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Product Image</Label>
-                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                  <p className="text-muted-foreground text-sm">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
-                </div>
+                <input
+                  ref={productFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProductImageChange}
+                  className="hidden"
+                />
+                {productImagePreview ? (
+                  <div className="relative">
+                    <div
+                      className="border-2 border-border rounded-xl overflow-hidden relative group"
+                      onDrop={handleProductImageDrop}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
+                      <img
+                        src={productImagePreview}
+                        alt="Product preview"
+                        className="w-full h-48 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveProductImage}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => productFileInputRef.current?.click()}
+                    onDrop={handleProductImageDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                  >
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-muted-foreground text-sm">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+                  </div>
+                )}
               </div>
-              <Button type="submit" variant="hero" className="w-full">
-                List Product
+              <Button type="submit" variant="hero" className="w-full" disabled={isUploadingProduct}>
+                {isUploadingProduct ? "Uploading..." : "List Product"}
               </Button>
-            </form>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -179,8 +678,8 @@ const Marketplace = () => {
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>KES {priceRange[0]}</span>
-                  <span>KES {priceRange[1]}</span>
+                  <span>PHP {priceRange[0]}</span>
+                  <span>PHP {priceRange[1]}</span>
                 </div>
               </div>
             </div>
@@ -189,52 +688,152 @@ const Marketplace = () => {
       </Card>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProducts.map((product) => (
-          <Card key={product.id} variant="glass" className="overflow-hidden hover-lift group">
-            <div className="relative aspect-[4/3] overflow-hidden">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="text-sm font-semibold text-primary">
-                  KES {product.price}/{product.unit}
-                </span>
-              </div>
-            </div>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <h3 className="font-semibold text-lg">{product.name}</h3>
-                <div className="flex items-center gap-1 text-accent">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="text-sm font-medium">{product.rating}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
-                <MapPin className="w-4 h-4" />
-                <span>{product.location}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Seller</p>
-                  <p className="font-medium">{product.seller}</p>
-                </div>
-                <Button variant="hero" size="sm" onClick={() => handleBuy(product.name)}>
-                  <ShoppingCart className="w-4 h-4" />
-                  Buy Now
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredProducts.length === 0 && (
+      {isLoading ? (
         <Card variant="glass" className="p-12 text-center">
-          <p className="text-muted-foreground">No products found matching your criteria.</p>
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading products...</p>
         </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map((product) => (
+              <Card key={product.id} variant="glass" className="overflow-hidden hover-lift group">
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img
+                    src={product.image_url || "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=300&fit=crop"}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <span className="text-sm font-semibold text-primary">
+                      PHP {Number(product.price).toLocaleString()}/{product.unit}
+                    </span>
+                  </div>
+                </div>
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <h3 className="font-semibold text-lg">{product.name}</h3>
+                    <div className="flex items-center gap-1 text-accent">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-medium">{Number(product.rating).toFixed(1)}</span>
+                    </div>
+                  </div>
+                  {product.location && (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
+                      <MapPin className="w-4 h-4" />
+                      <span>{product.location}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Seller</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{product.profiles?.name || "Unknown"}</p>
+                        <ShopLink sellerId={product.seller_id} />
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="inline-flex items-center gap-1"
+                        onClick={() => handleMessageSeller(product)}
+                        disabled={user?.id === product.seller_id}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        Message Seller
+                      </Button>
+                      <Button 
+                        variant="hero" 
+                        size="sm" 
+                        onClick={() => handleBuy(product)}
+                        disabled={product.quantity === 0}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        {product.quantity === 0 ? 'Out of Stock' : 'Buy Now'}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {filteredProducts.length === 0 && (
+            <Card variant="glass" className="p-12 text-center">
+              <p className="text-muted-foreground">No products found matching your criteria.</p>
+            </Card>
+          )}
+
+          {/* Purchase Dialog */}
+          <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
+            <DialogContent className="sm:max-w-md max-h-[85vh] w-[calc(100vw-2rem)] m-4 overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>Purchase Product</DialogTitle>
+                <DialogDescription>
+                  Complete your purchase of {selectedProduct?.name}
+                </DialogDescription>
+              </DialogHeader>
+              {selectedProduct && (
+                <div className="overflow-y-auto flex-1 pr-1 scrollbar-hide -mx-2 px-2">
+                  <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Quantity ({selectedProduct.unit})</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={selectedProduct.quantity}
+                      value={purchaseQuantity}
+                      onChange={(e) => {
+                        const qty = Math.max(1, Math.min(selectedProduct.quantity, parseInt(e.target.value) || 1));
+                        setPurchaseQuantity(qty);
+                      }}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Available: {selectedProduct.quantity} {selectedProduct.unit}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Price per {selectedProduct.unit}</Label>
+                    <p className="text-lg font-semibold">PHP {selectedProduct.price.toLocaleString()}</p>
+                  </div>
+                  <div className="space-y-2 border-t pt-4">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-base">Total Amount</Label>
+                      <p className="text-2xl font-bold text-primary">
+                        PHP {(selectedProduct.price * purchaseQuantity).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 border-t pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      You'll be redirected to chat with the seller to arrange payment and delivery details.
+                    </p>
+                  </div>
+                  <Button
+                    variant="hero"
+                    className="w-full"
+                    onClick={handlePurchase}
+                    disabled={isProcessingPurchase || purchaseQuantity > selectedProduct.quantity}
+                  >
+                    {isProcessingPurchase ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Confirm Purchase
+                      </>
+                    )}
+                  </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
       )}
     </div>
   );

@@ -10,10 +10,12 @@ import {
   Leaf,
   ChevronLeft,
   ChevronRight,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/app/dashboard" },
@@ -21,6 +23,7 @@ const navItems = [
   { icon: Stethoscope, label: "Crop Doctor", path: "/app/crop-doctor" },
   { icon: CloudSun, label: "Climate Advisory", path: "/app/climate-advisory" },
   { icon: Wallet, label: "Finances", path: "/app/finances" },
+  { icon: MessageCircle, label: "Messages", path: "/app/chat" },
   { icon: User, label: "Profile", path: "/app/profile" },
 ];
 
@@ -31,6 +34,7 @@ interface AppSidebarProps {
 
 const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
   const location = useLocation();
+  const { signOut } = useAuth();
 
   return (
     <aside
@@ -91,12 +95,10 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
             "w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
             collapsed ? "justify-center px-0" : "justify-start"
           )}
-          asChild
+          onClick={() => signOut()}
         >
-          <Link to="/">
-            <LogOut className="w-5 h-5" />
-            {!collapsed && <span>Logout</span>}
-          </Link>
+          <LogOut className="w-5 h-5" />
+          {!collapsed && <span>Logout</span>}
         </Button>
       </div>
     </aside>

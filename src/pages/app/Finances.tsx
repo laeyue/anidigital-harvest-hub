@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockFinances } from "@/lib/mockData";
 import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import {
   BarChart,
@@ -11,8 +10,90 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+
+interface Transaction {
+  id: string;
+  type: 'income' | 'expense';
+  description: string;
+  amount: number;
+  date: string;
+}
 
 const Finances = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      loadTransactions();
+    }
+  }, [user]);
+
+  const loadTransactions = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error loading transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load transactions",
+        variant: "destructive",
+      });
+    } else {
+      setTransactions(data || []);
+      calculateStats(data || []);
+    }
+    setIsLoading(false);
+  };
+
+  const calculateStats = (transactions: Transaction[]) => {
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    const expenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    setTotalIncome(income);
+    setTotalExpenses(expenses);
+
+    // Group by month
+    const monthly: Record<string, { income: number; expenses: number }> = {};
+    transactions.forEach(t => {
+      const date = new Date(t.date);
+      const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+      if (!monthly[monthKey]) {
+        monthly[monthKey] = { income: 0, expenses: 0 };
+      }
+      if (t.type === 'income') {
+        monthly[monthKey].income += Number(t.amount);
+      } else {
+        monthly[monthKey].expenses += Number(t.amount);
+      }
+    });
+
+    setMonthlyData(Object.entries(monthly).map(([month, data]) => ({
+      month,
+      income: data.income,
+      expenses: data.expenses,
+    })));
+  };
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -22,6 +103,13 @@ const Finances = () => {
       </div>
 
       {/* Summary Cards */}
+      {isLoading ? (
+        <Card variant="glass" className="p-12 text-center">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading finances...</p>
+        </Card>
+      ) : (
+        <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card variant="glass" className="hover-lift">
           <CardContent className="p-6">
@@ -34,7 +122,7 @@ const Finances = () => {
                 18%
               </span>
             </div>
-            <p className="text-2xl font-bold">KES {mockFinances.totalIncome.toLocaleString()}</p>
+            <p className="text-2xl font-bold">PHP {totalIncome.toLocaleString()}</p>
             <p className="text-muted-foreground text-sm">Total Income</p>
           </CardContent>
         </Card>
@@ -50,7 +138,7 @@ const Finances = () => {
                 5%
               </span>
             </div>
-            <p className="text-2xl font-bold">KES {mockFinances.totalExpenses.toLocaleString()}</p>
+            <p className="text-2xl font-bold">PHP {totalExpenses.toLocaleString()}</p>
             <p className="text-muted-foreground text-sm">Total Expenses</p>
           </CardContent>
         </Card>
@@ -66,7 +154,7 @@ const Finances = () => {
                 25%
               </span>
             </div>
-            <p className="text-2xl font-bold">KES {mockFinances.netProfit.toLocaleString()}</p>
+            <p className="text-2xl font-bold">PHP {(totalIncome - totalExpenses).toLocaleString()}</p>
             <p className="text-muted-foreground text-sm">Net Profit</p>
           </CardContent>
         </Card>
@@ -80,7 +168,7 @@ const Finances = () => {
         <CardContent>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockFinances.monthlyData}>
+              <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -90,7 +178,7 @@ const Finances = () => {
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "0.75rem",
                   }}
-                  formatter={(value: number) => [`KES ${value.toLocaleString()}`, ""]}
+                  formatter={(value: number) => [`PHP ${value.toLocaleString()}`, ""]}
                 />
                 <Legend />
                 <Bar dataKey="income" fill="hsl(152 60% 42%)" radius={[4, 4, 0, 0]} name="Income" />
@@ -117,12 +205,14 @@ const Finances = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockFinances.transactions.map((transaction) => (
+                {transactions.map((transaction) => (
                   <tr
                     key={transaction.id}
                     className="border-b border-border/50 hover:bg-muted/50 transition-colors"
                   >
-                    <td className="py-4 px-4 text-muted-foreground">{transaction.date}</td>
+                    <td className="py-4 px-4 text-muted-foreground">
+                      {new Date(transaction.date).toLocaleDateString()}
+                    </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
                         <div
@@ -146,7 +236,7 @@ const Finances = () => {
                         transaction.type === "income" ? "text-primary" : "text-destructive"
                       }`}
                     >
-                      {transaction.type === "income" ? "+" : ""}KES{" "}
+                      {transaction.type === "income" ? "+" : ""}PHP{" "}
                       {Math.abs(transaction.amount).toLocaleString()}
                     </td>
                   </tr>
@@ -156,6 +246,8 @@ const Finances = () => {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };

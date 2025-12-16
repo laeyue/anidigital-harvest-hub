@@ -13,6 +13,8 @@ import {
 import { Leaf, Mail, Lock, User, MapPin, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -25,20 +27,56 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate signup
-    setTimeout(() => {
+    const { error } = await signUp(formData.email, formData.password, {
+      name: formData.name,
+      role: formData.role,
+      location: formData.location,
+    });
+
+    if (error) {
       setIsLoading(false);
       toast({
-        title: "Account created!",
-        description: "Welcome to Ani-Digital. Let's get started!",
+        title: "Signup failed",
+        description: error.message,
+        variant: "destructive",
       });
-      navigate("/app/dashboard");
-    }, 1000);
+      return;
+    }
+
+    // Create profile after signup
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: user.id,
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        location: formData.location,
+      });
+
+      if (profileError) {
+        setIsLoading(false);
+        toast({
+          title: "Profile creation failed",
+          description: profileError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setIsLoading(false);
+    toast({
+      title: "Account created!",
+      description: "Welcome to Ani-Digital. Let's get started!",
+    });
+    navigate("/app/dashboard");
   };
 
   return (

@@ -44,7 +44,7 @@ const features = [
 
 const stats = [
   { value: "15K+", label: "Active Farmers" },
-  { value: "KES 45M", label: "Products Traded" },
+  { value: "PHP 45M", label: "Products Traded" },
   { value: "98%", label: "Accuracy Rate" },
   { value: "24/7", label: "Support" },
 ];
@@ -74,7 +74,7 @@ const Landing = () => {
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center bg-gradient-hero bg-hero-pattern">
+      <section className="relative min-h-[90vh] flex items-center bg-[hsl(152,60%,18%)] bg-gradient-hero bg-hero-pattern">
         {/* Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-20 right-10 w-72 h-72 bg-emerald/20 rounded-full blur-3xl animate-pulse-slow" />
@@ -274,7 +274,7 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-hero relative overflow-hidden">
+      <section className="py-24 bg-[hsl(152,60%,18%)] bg-gradient-hero relative overflow-hidden">
         <div className="absolute inset-0 bg-hero-pattern opacity-50" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
