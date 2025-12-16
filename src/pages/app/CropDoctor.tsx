@@ -267,7 +267,7 @@ const CropDoctor = () => {
         <p className="text-muted-foreground">AI-powered crop disease diagnosis and treatment recommendations</p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
         {/* Upload Area */}
         <Card variant="glass">
           <CardHeader>
@@ -341,26 +341,26 @@ const CropDoctor = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-accent/10 rounded-xl">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Detected Disease</p>
-                        <p className="text-xl font-bold text-accent">{diagnosis?.disease}</p>
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-accent/10 rounded-xl">
+                      <div className="flex-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1">Detected Disease</p>
+                        <p className="text-lg sm:text-xl font-bold text-accent break-words">{diagnosis?.disease}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Confidence</p>
-                        <p className="text-xl font-bold text-primary">{diagnosis?.confidence}%</p>
+                      <div className="text-left sm:text-right flex-shrink-0">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1">Confidence</p>
+                        <p className="text-lg sm:text-xl font-bold text-primary">{diagnosis?.confidence}%</p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 bg-muted/50 rounded-xl">
-                        <p className="text-sm text-muted-foreground">Severity</p>
-                        <p className="font-semibold">{diagnosis?.severity}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">Severity</p>
+                        <p className="text-sm sm:text-base font-semibold break-words">{diagnosis?.severity}</p>
                       </div>
                       <div className="p-4 bg-muted/50 rounded-xl">
-                        <p className="text-sm text-muted-foreground">Affected Area</p>
-                        <p className="font-semibold">{diagnosis?.affected_area}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">Affected Area</p>
+                        <p className="text-sm sm:text-base font-semibold break-words">{diagnosis?.affected_area}</p>
                       </div>
                     </div>
                   </div>
@@ -380,7 +380,7 @@ const CropDoctor = () => {
                     {diagnosis?.treatments.map((treatment, i) => (
                       <li key={i} className="flex items-start gap-3 p-3 bg-primary/5 rounded-xl">
                         <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{treatment}</span>
+                        <span className="text-sm leading-relaxed break-words">{treatment}</span>
                       </li>
                     ))}
                   </ul>
@@ -400,7 +400,7 @@ const CropDoctor = () => {
                     {diagnosis?.prevention_tips.map((tip, i) => (
                       <li key={i} className="flex items-start gap-3 p-3 bg-emerald/5 rounded-xl">
                         <Leaf className="w-5 h-5 text-emerald flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{tip}</span>
+                        <span className="text-sm leading-relaxed break-words">{tip}</span>
                       </li>
                     ))}
                   </ul>
