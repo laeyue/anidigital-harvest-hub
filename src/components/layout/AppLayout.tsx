@@ -36,7 +36,7 @@ const AppLayout = () => {
       {/* Main Content */}
       <div
         className={cn(
-          "transition-all duration-300",
+          "transition-all duration-300 ease-in-out",
           collapsed ? "lg:ml-20" : "lg:ml-64"
         )}
       >

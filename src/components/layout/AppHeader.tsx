@@ -415,7 +415,7 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
               )}
             </Button>
           </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto">
+            <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto scrollbar-hide">
             <div className="flex items-center justify-between px-2 py-1.5">
               <DropdownMenuLabel>Notifications</DropdownMenuLabel>
               {unreadCount > 0 && (
