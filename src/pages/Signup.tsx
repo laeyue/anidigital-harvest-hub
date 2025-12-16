@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Leaf, Mail, Lock, User, MapPin, ArrowRight } from "lucide-react";
+import { Leaf, Mail, Lock, User, MapPin, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +27,8 @@ const Signup = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signUp } = useAuth();
@@ -161,17 +163,28 @@ const Signup = () => {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => {
                     setFormData({ ...formData, password: e.target.value });
                     setPasswordError("");
                   }}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   required
                   minLength={6}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -181,16 +194,27 @@ const Signup = () => {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={(e) => {
                     setFormData({ ...formData, confirmPassword: e.target.value });
                     setPasswordError("");
                   }}
-                  className={`pl-10 ${passwordError ? "border-destructive" : ""}`}
+                  className={`pl-10 pr-10 ${passwordError ? "border-destructive" : ""}`}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
               {passwordError && (
                 <p className="text-sm text-destructive">{passwordError}</p>

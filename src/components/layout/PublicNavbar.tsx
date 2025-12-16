@@ -1,10 +1,32 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Leaf, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const PublicNavbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleHashLink = (hash: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsMenuOpen(false);
+    
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const element = document.querySelector(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      const element = document.querySelector(hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border/50">
@@ -22,15 +44,27 @@ const PublicNavbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
+            <a 
+              href="/#features" 
+              onClick={(e) => handleHashLink('#features', e)}
+              className="text-muted-foreground hover:text-primary transition-colors font-medium cursor-pointer"
+            >
               Features
-            </Link>
-            <Link to="/#impact" className="text-muted-foreground hover:text-primary transition-colors font-medium">
+            </a>
+            <a 
+              href="/#impact" 
+              onClick={(e) => handleHashLink('#impact', e)}
+              className="text-muted-foreground hover:text-primary transition-colors font-medium cursor-pointer"
+            >
               Impact
-            </Link>
-            <Link to="/#about" className="text-muted-foreground hover:text-primary transition-colors font-medium">
+            </a>
+            <a 
+              href="/#about" 
+              onClick={(e) => handleHashLink('#about', e)}
+              className="text-muted-foreground hover:text-primary transition-colors font-medium cursor-pointer"
+            >
               About
-            </Link>
+            </a>
           </div>
 
           {/* Auth Buttons */}
@@ -56,27 +90,27 @@ const PublicNavbar = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
             <div className="flex flex-col gap-4">
-              <Link
-                to="/#features"
-                className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2"
-                onClick={() => setIsMenuOpen(false)}
+              <a
+                href="/#features"
+                onClick={(e) => handleHashLink('#features', e)}
+                className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2 cursor-pointer"
               >
                 Features
-              </Link>
-              <Link
-                to="/#impact"
-                className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2"
-                onClick={() => setIsMenuOpen(false)}
+              </a>
+              <a
+                href="/#impact"
+                onClick={(e) => handleHashLink('#impact', e)}
+                className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2 cursor-pointer"
               >
                 Impact
-              </Link>
-              <Link
-                to="/#about"
-                className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2"
-                onClick={() => setIsMenuOpen(false)}
+              </a>
+              <a
+                href="/#about"
+                onClick={(e) => handleHashLink('#about', e)}
+                className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2 cursor-pointer"
               >
                 About
-              </Link>
+              </a>
               <div className="flex gap-3 pt-4 border-t border-border">
                 <Button variant="outline" className="flex-1" asChild>
                   <Link to="/login">Log In</Link>

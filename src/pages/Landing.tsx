@@ -51,20 +51,20 @@ const stats = [
 
 const testimonials = [
   {
-    name: "James Mwangi",
-    role: "Maize Farmer, Nakuru",
+    name: "Juan Dela Cruz",
+    role: "Rice Farmer, Nueva Ecija",
     content: "Ani-Digital helped me increase my sales by 40%. The marketplace connects me directly with buyers.",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
   },
   {
-    name: "Grace Wanjiru",
-    role: "Vegetable Farmer, Kiambu",
+    name: "Maria Santos",
+    role: "Vegetable Farmer, Benguet",
     content: "The Crop Doctor feature saved my entire tomato harvest. It detected blight early and gave me treatment options.",
     avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&h=100&fit=crop&crop=face",
   },
   {
-    name: "Peter Ochieng",
-    role: "Dairy Farmer, Eldoret",
+    name: "Carlos Reyes",
+    role: "Coconut Farmer, Quezon",
     content: "Weather alerts helped me plan my activities better. I no longer lose crops to unexpected weather.",
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
   },
@@ -173,24 +173,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-12 bg-background relative -mt-1">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat, i) => (
-              <div
-                key={i}
-                className="text-center p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-emerald/5 border border-primary/10 animate-slide-up"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <p className="text-3xl md:text-4xl font-bold text-primary mb-2">{stat.value}</p>
-                <p className="text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Features Section */}
       <section id="features" className="py-24 bg-background">
         <div className="container mx-auto px-4">
@@ -222,6 +204,40 @@ const Landing = () => {
                 <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                About <span className="text-primary">Ani-Digital</span>
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Empowering Filipino farmers with digital tools for sustainable agriculture
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              <Card variant="glass" className="p-6">
+                <h3 className="text-xl font-bold mb-4">Our Mission</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  To bridge the gap between traditional farming and modern technology, 
+                  providing Filipino farmers with accessible tools that increase productivity, 
+                  improve crop health, and connect them directly to markets.
+                </p>
+              </Card>
+              <Card variant="glass" className="p-6">
+                <h3 className="text-xl font-bold mb-4">Our Vision</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  A future where every farmer in the Philippines has access to digital 
+                  farming solutions, enabling sustainable agriculture and economic growth 
+                  in rural communities across the nation.
+                </p>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
