@@ -387,39 +387,31 @@ const ChatConversation = () => {
                                   if (error) throw error;
                                   if (!data) throw new Error("Failed to update order");
 
-                                  // Create transactions for buyer and seller
+                                  // Create transactions for buyer and seller using RPC function
                                   const today = new Date().toISOString().split("T")[0];
                                   const description = `Purchased ${order.quantity}${order.unit} ${order.product_name}`;
                                   const sellerDescription = `Sold ${order.quantity}${order.unit} ${order.product_name}`;
 
-                                  // Create expense transaction for buyer
-                                  const { error: buyerTxError } = await supabase
-                                    .from("transactions")
-                                    .insert({
-                                      user_id: order.buyer_id,
-                                      type: "expense",
-                                      amount: order.total_amount,
-                                      description: description,
-                                      date: today,
+                                  const { error: txError } = await supabase.rpc(
+                                    "create_chat_order_transactions",
+                                    {
+                                      p_order_id: order.id,
+                                      p_buyer_id: order.buyer_id,
+                                      p_seller_id: order.seller_id,
+                                      p_total_amount: order.total_amount,
+                                      p_description: description,
+                                      p_seller_description: sellerDescription,
+                                      p_transaction_date: today,
+                                    }
+                                  );
+
+                                  if (txError) {
+                                    console.error("Error creating transactions:", txError);
+                                    toast({
+                                      title: "Warning",
+                                      description: "Order marked as paid, but failed to record transactions. Please check your finances.",
+                                      variant: "destructive",
                                     });
-
-                                  if (buyerTxError) {
-                                    console.error("Error creating buyer transaction:", buyerTxError);
-                                  }
-
-                                  // Create income transaction for seller
-                                  const { error: sellerTxError } = await supabase
-                                    .from("transactions")
-                                    .insert({
-                                      user_id: order.seller_id,
-                                      type: "income",
-                                      amount: order.total_amount,
-                                      description: sellerDescription,
-                                      date: today,
-                                    });
-
-                                  if (sellerTxError) {
-                                    console.error("Error creating seller transaction:", sellerTxError);
                                   }
 
                                   // Update product quantity
