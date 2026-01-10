@@ -332,7 +332,10 @@ const Shop = ({ shopId: shopIdProp }: ShopProps = {}) => {
 
       setIsPurchaseDialogOpen(false);
       setSelectedProduct(null);
-      router.push(`/app/chat/${conversationId}`);
+      // Navigate to chat - use window.location as router may not be available during SSR
+      if (typeof window !== "undefined") {
+        window.location.href = `/app/chat/${conversationId}`;
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An error occurred while processing your purchase.";
       console.error('Error processing purchase:', error);
