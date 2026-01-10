@@ -8,11 +8,13 @@ services:
       dockerfile: Dockerfile
       args:
         # These are required at build time to be embedded in the client bundle
+        # Set these in Portainer: Stack > Stack editor > Environment variables
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
         NEXT_PUBLIC_AGROMONITORING_API_KEY: ${NEXT_PUBLIC_AGROMONITORING_API_KEY:-}
         NEXT_PUBLIC_PLANT_ID_API_KEY: ${NEXT_PUBLIC_PLANT_ID_API_KEY:-}
         NEXT_PUBLIC_ENABLE_DEBUG_LOGS: ${NEXT_PUBLIC_ENABLE_DEBUG_LOGS:-false}
+    image: anidigital-harvest-hub:latest
     ports:
       - "9999:3000"
     restart: unless-stopped
@@ -28,14 +30,23 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000 || exit 1"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     # Labels for Portainer
     labels:
       - "com.docker.compose.project=anidigital-harvest-hub"
       - "com.docker.compose.service=web"
-      - "traefik.enable=false"
+      - "com.docker.compose.version=1"
+    # Resource limits (optional, adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
