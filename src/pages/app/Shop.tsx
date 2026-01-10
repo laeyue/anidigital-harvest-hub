@@ -32,7 +32,6 @@ import {
 import { MapPin, Mail, Star, ShoppingCart, Package, Edit2, Plus, Upload, X, MessageCircle, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -81,8 +80,18 @@ interface ShopProps {
 }
 
 const Shop = ({ shopId: shopIdProp }: ShopProps = {}) => {
-  const router = useRouter();
-  const shopId = shopIdProp || (typeof window !== "undefined" && router?.query?.shopId ? router.query.shopId as string : undefined);
+  // Extract shopId from URL pathname if not provided as prop
+  const getShopIdFromUrl = () => {
+    if (shopIdProp) return shopIdProp;
+    if (typeof window === "undefined") return undefined;
+    const pathParts = window.location.pathname.split("/");
+    const shopIndex = pathParts.indexOf("shop");
+    if (shopIndex !== -1 && shopIndex < pathParts.length - 1) {
+      return pathParts[shopIndex + 1];
+    }
+    return undefined;
+  };
+  const shopId = getShopIdFromUrl();
   const { user } = useAuth();
   const { toast } = useToast();
   const [shop, setShop] = useState<Shop | null>(null);
@@ -238,7 +247,10 @@ const Shop = ({ shopId: shopIdProp }: ShopProps = {}) => {
       interface ConversationResult {
         id: string;
       }
-      router.push(`/app/chat/${(data as ConversationResult).id}`);
+      // Navigate to chat - use window.location as router may not be available during SSR
+      if (typeof window !== "undefined") {
+        window.location.href = `/app/chat/${(data as ConversationResult).id}`;
+      }
     } catch (err) {
       console.error("Error opening conversation:", err);
       toast({
