@@ -1,7 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter } from "next/router";
 import {
   LayoutDashboard,
   ShoppingBasket,
@@ -36,7 +34,8 @@ interface AppSidebarProps {
 }
 
 const AppSidebar = ({ collapsed, onToggle, isMobile = false }: AppSidebarProps) => {
-  const pathname = usePathname();
+  const router = useRouter();
+  const pathname = router.pathname;
   const { signOut } = useAuth();
 
   return (
