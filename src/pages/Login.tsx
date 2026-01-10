@@ -1,5 +1,3 @@
-"use client";
-
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -8,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,16 +15,11 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const { signIn } = useAuth();
   
-  // Only access router after component mounts
-  const router = mounted ? useRouter() : null;
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Always call useRouter() - required by React hooks rules
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,12 +41,17 @@ const Login = () => {
         description: "You have successfully logged in.",
         duration: 3000,
       });
-      // Use router if available, otherwise use window.location
+      // Navigate using router or window.location
       if (typeof window !== "undefined") {
-        if (mounted && router && router.isReady) {
-          router.push("/app/dashboard");
-        } else {
-          // Fallback to window.location if router not available
+        try {
+          if (router.isReady) {
+            router.push("/app/dashboard");
+          } else {
+            // Fallback to window.location if router not ready
+            window.location.href = "/app/dashboard";
+          }
+        } catch (e) {
+          // Fallback if router throws error
           window.location.href = "/app/dashboard";
         }
       }

@@ -1,5 +1,3 @@
-"use client";
-
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
