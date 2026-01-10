@@ -27,6 +27,8 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   output: 'standalone',
+  // Explicitly use Pages Router (src/pages) - ignore app directory if it exists
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   images: {
     // Allow images from any Supabase project (uses wildcard pattern)
     remotePatterns: [

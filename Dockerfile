@@ -39,7 +39,7 @@ ENV NEXT_PUBLIC_ENABLE_DEBUG_LOGS=${NEXT_PUBLIC_ENABLE_DEBUG_LOGS:-false}
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy configuration files
+# Copy configuration files first
 COPY next.config.js ./
 COPY tsconfig.json ./
 COPY tailwind.config.ts ./
@@ -56,6 +56,9 @@ COPY public ./public
 
 # Copy any other necessary files
 COPY middleware.ts ./
+
+# Verify app directory is not copied (should be excluded by .dockerignore)
+RUN if [ -d "app" ]; then echo "WARNING: app/ directory found - it should be excluded!"; rm -rf app; fi
 
 # Build the application
 RUN npm run build
