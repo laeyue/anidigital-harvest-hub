@@ -138,7 +138,7 @@ const Marketplace = () => {
         setSearchQuery(decodeURIComponent(searchParam));
       }
     }
-  }, [router?.query]);
+  }, []);
 
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
