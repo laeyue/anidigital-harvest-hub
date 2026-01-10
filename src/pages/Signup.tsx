@@ -113,7 +113,7 @@ const Signup = () => {
       if (router?.push && router.isReady !== false) {
         try {
           router.push("/app/dashboard");
-        } catch (e) {
+        } catch {
           // Fallback if router throws error
           window.location.href = "/app/dashboard";
         }
