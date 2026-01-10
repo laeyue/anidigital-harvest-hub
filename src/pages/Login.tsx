@@ -1,6 +1,6 @@
 import { GetServerSideProps } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,16 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Client-side only router access
+const useRouter = () => {
+  if (typeof window === "undefined") {
+    return { push: () => {}, isReady: false } as any;
+  }
+  // Dynamic import to avoid SSR issues
+  const router = require("next/router").useRouter();
+  return router;
+};
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +28,7 @@ const Login = () => {
   const { toast } = useToast();
   const { signIn } = useAuth();
   
-  // Always call useRouter() - required by React hooks rules
+  // Use wrapped router that handles SSR
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
