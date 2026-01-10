@@ -53,7 +53,8 @@ COPY src ./src
 COPY public ./public
 
 # Copy app directory if it exists (App Router)
-COPY app ./app 2>/dev/null || true
+# Note: This will fail silently if app/ doesn't exist, which is fine
+COPY app ./app 2>/dev/null || echo "Note: app/ directory not found, skipping..."
 
 # Copy any other necessary files
 COPY middleware.ts ./
