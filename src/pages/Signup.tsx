@@ -34,15 +34,9 @@ const Signup = () => {
   const { toast } = useToast();
   const { signUp } = useAuth();
   
-  // Must call useRouter() at top level - required by React hooks rules
+  // Must call useRouter() at top level unconditionally - required by React hooks rules
   // In Pages Router, this should work even during SSR
-  let router: ReturnType<typeof useRouter> | null = null;
-  try {
-    router = useRouter();
-  } catch (error) {
-    // Router not available - will use window.location as fallback
-    console.warn("Router not available:", error);
-  }
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -10,17 +10,11 @@ export default function App({ Component, pageProps }: AppProps) {
   const [mounted, setMounted] = useState(false);
   const { user, loading } = useAuth();
   
-  // Must call useRouter() at top level - required by React hooks rules
+  // Must call useRouter() at top level unconditionally - required by React hooks rules
   // In Pages Router, this should work even during SSR
-  let router: ReturnType<typeof useRouter> | null = null;
-  try {
-    router = useRouter();
-  } catch (error) {
-    // Router not available during SSR - will handle gracefully
-    console.warn("Router not available in _app:", error);
-  }
+  const router = useRouter();
   
-  const isAppRoute = router?.pathname?.startsWith('/app') ?? false;
+  const isAppRoute = router.pathname?.startsWith('/app') ?? false;
 
   useEffect(() => {
     setMounted(true);
@@ -28,7 +22,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // Redirect to login if accessing app routes without auth (client-side check)
   useEffect(() => {
-    if (mounted && router && isAppRoute && !loading && !user) {
+    if (mounted && router.isReady && isAppRoute && !loading && !user) {
       router.push('/login');
     }
   }, [mounted, router, isAppRoute, loading, user]);
