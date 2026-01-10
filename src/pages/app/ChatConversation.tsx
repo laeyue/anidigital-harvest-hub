@@ -1,6 +1,5 @@
 import { GetServerSideProps } from "next";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,8 +37,18 @@ interface ChatConversationProps {
 }
 
 const ChatConversation = ({ conversationId: conversationIdProp }: ChatConversationProps = {}) => {
-  const router = useRouter();
-  const conversationId = conversationIdProp || (typeof window !== "undefined" && router?.query?.conversationId ? router.query.conversationId as string : undefined);
+  // Extract conversationId from URL pathname if not provided as prop
+  const getConversationIdFromUrl = () => {
+    if (conversationIdProp) return conversationIdProp;
+    if (typeof window === "undefined") return undefined;
+    const pathParts = window.location.pathname.split("/");
+    const chatIndex = pathParts.indexOf("chat");
+    if (chatIndex !== -1 && chatIndex < pathParts.length - 1) {
+      return pathParts[chatIndex + 1];
+    }
+    return undefined;
+  };
+  const conversationId = getConversationIdFromUrl();
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
