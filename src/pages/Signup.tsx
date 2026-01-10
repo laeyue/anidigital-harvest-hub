@@ -110,15 +110,15 @@ const Signup = () => {
     });
     // Navigate using router or window.location
     if (typeof window !== "undefined") {
-      if (router?.push && router.isReady !== false) {
-        try {
+      try {
+        if (router.isReady) {
           router.push("/app/dashboard");
-        } catch {
-          // Fallback if router throws error
+        } else {
+          // Fallback to window.location if router not ready
           window.location.href = "/app/dashboard";
         }
-      } else {
-        // Fallback to window.location if router not available
+      } catch {
+        // Fallback if router throws error
         window.location.href = "/app/dashboard";
       }
     }
