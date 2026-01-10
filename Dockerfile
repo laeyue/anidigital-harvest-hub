@@ -49,16 +49,14 @@ COPY next-env.d.ts ./
 COPY eslint.config.js ./
 
 # Copy source directories
-# Note: We're using Pages Router (src/pages/), not App Router (app/)
-# The app/ directory is excluded via .dockerignore
 COPY src ./src
 COPY public ./public
 
+# Copy app directory if it exists (App Router)
+COPY app ./app 2>/dev/null || true
+
 # Copy any other necessary files
 COPY middleware.ts ./
-
-# Verify app directory is not copied (should be excluded by .dockerignore)
-RUN if [ -d "app" ]; then echo "WARNING: app/ directory found - it should be excluded!"; rm -rf app; fi
 
 # Build the application
 RUN npm run build

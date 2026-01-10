@@ -43,9 +43,6 @@ logs
 docker-compose.yml
 .dockerignore
 
-# App Router directory (we're using Pages Router with src/pages/)
-app
-
 
 
 
