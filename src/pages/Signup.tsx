@@ -105,12 +105,12 @@ const Signup = () => {
       title: "Account created!",
       description: "Welcome to Ani-Digital. Let's get started!",
     });
-    // Use router if ready, otherwise use window.location
+    // Use router if available, otherwise use window.location
     if (typeof window !== "undefined") {
-      if (router.isReady) {
+      if (mounted && router && router.isReady) {
         router.push("/app/dashboard");
       } else {
-        // Fallback to window.location if router not ready
+        // Fallback to window.location if router not available
         window.location.href = "/app/dashboard";
       }
     }

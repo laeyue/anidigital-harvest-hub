@@ -1,3 +1,5 @@
+"use client";
+
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -15,11 +17,16 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const { signIn } = useAuth();
   
-  // Use router hook - check isReady before using it
-  const router = useRouter();
+  // Only access router after component mounts
+  const router = mounted ? useRouter() : null;
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,12 +48,12 @@ const Login = () => {
         description: "You have successfully logged in.",
         duration: 3000,
       });
-      // Use router if ready, otherwise use window.location
+      // Use router if available, otherwise use window.location
       if (typeof window !== "undefined") {
-        if (router.isReady) {
+        if (mounted && router && router.isReady) {
           router.push("/app/dashboard");
         } else {
-          // Fallback to window.location if router not ready
+          // Fallback to window.location if router not available
           window.location.href = "/app/dashboard";
         }
       }
