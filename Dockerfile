@@ -49,7 +49,8 @@ COPY next-env.d.ts ./
 COPY eslint.config.js ./
 
 # Copy source directories
-COPY app ./app
+# Note: We're using Pages Router (src/pages/), not App Router (app/)
+# The app/ directory is excluded via .dockerignore
 COPY src ./src
 COPY public ./public
 
