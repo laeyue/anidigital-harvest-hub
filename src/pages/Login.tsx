@@ -51,7 +51,7 @@ const Login = () => {
             // Fallback to window.location if router not ready
             window.location.href = "/app/dashboard";
           }
-        } catch (e) {
+        } catch {
           // Fallback if router throws error
           window.location.href = "/app/dashboard";
         }
