@@ -130,9 +130,13 @@ const Marketplace = () => {
 
   // Sync search query from URL params
   useEffect(() => {
-    if (typeof window !== "undefined" && router?.query?.search) {
-      const searchParam = router.query.search as string;
-      setSearchQuery(decodeURIComponent(searchParam));
+    // Read search query from URL params (client-side only)
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchParam = urlParams.get("search");
+      if (searchParam) {
+        setSearchQuery(decodeURIComponent(searchParam));
+      }
     }
   }, [router?.query]);
 
@@ -258,7 +262,10 @@ const Marketplace = () => {
       interface ConversationResult {
         id: string;
       }
-      router.push(`/app/chat/${(data as ConversationResult).id}`);
+      // Navigate to chat - use window.location as router may not be available during SSR
+      if (typeof window !== "undefined") {
+        window.location.href = `/app/chat/${(data as ConversationResult).id}`;
+      }
     } catch (err) {
       logger.error("Error opening conversation:", err);
       toast({
@@ -344,7 +351,10 @@ const Marketplace = () => {
       interface ConversationResult {
         id: string;
       }
-      router.push(`/app/chat/${(conv as ConversationResult).id}`);
+      // Navigate to chat - use window.location as router may not be available during SSR
+      if (typeof window !== "undefined") {
+        window.location.href = `/app/chat/${(conv as ConversationResult).id}`;
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An error occurred while processing your purchase.";
       logger.error('Error processing purchase:', error);
