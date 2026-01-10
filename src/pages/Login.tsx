@@ -1,35 +1,30 @@
 import { GetServerSideProps } from "next";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Client-side only router access
-const useRouter = () => {
-  if (typeof window === "undefined") {
-    return { push: () => {}, isReady: false } as any;
-  }
-  // Dynamic import to avoid SSR issues
-  const router = require("next/router").useRouter();
-  return router;
-};
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [router, setRouter] = useState<any>(null);
   const { toast } = useToast();
   const { signIn } = useAuth();
   
-  // Use wrapped router that handles SSR
-  const router = useRouter();
+  // Load router only on client side after mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const { useRouter } = require("next/router");
+      setRouter(useRouter());
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
