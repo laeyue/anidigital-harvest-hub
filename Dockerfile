@@ -52,9 +52,8 @@ COPY eslint.config.js ./
 COPY src ./src
 COPY public ./public
 
-# Copy app directory if it exists (App Router)
-# Note: This will fail silently if app/ doesn't exist, which is fine
-COPY app ./app 2>/dev/null || echo "Note: app/ directory not found, skipping..."
+# Copy app directory (App Router) - included if it exists
+COPY app ./app
 
 # Copy any other necessary files
 COPY middleware.ts ./
