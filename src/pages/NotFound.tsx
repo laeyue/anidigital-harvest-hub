@@ -1,16 +1,13 @@
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useEffect } from "react";
 
 const NotFound = () => {
-  const router = useRouter();
-
   useEffect(() => {
-    // Only log on client-side
-    if (typeof window !== "undefined" && router) {
-      console.error("404 Error: User attempted to access non-existent route:", router.pathname);
+    // Only log on client-side after mount
+    if (typeof window !== "undefined") {
+      console.error("404 Error: User attempted to access non-existent route:", window.location.pathname);
     }
-  }, [router]);
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted">
