@@ -287,3 +287,6 @@ export const getServerSideProps: GetServerSideProps = async () => {
     props: {},
   };
 };
+
+// Ensure this page is not statically optimized
+Signup.getInitialProps = async () => ({});
