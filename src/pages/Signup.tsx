@@ -31,9 +31,14 @@ const Signup = () => {
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { signUp } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,9 +110,12 @@ const Signup = () => {
       title: "Account created!",
       description: "Welcome to Ani-Digital. Let's get started!",
     });
-    // Only use router if available (client-side)
-    if (typeof window !== "undefined" && router) {
+    // Only use router if available (client-side and mounted)
+    if (mounted && typeof window !== "undefined" && router) {
       router.push("/app/dashboard");
+    } else if (typeof window !== "undefined") {
+      // Fallback to window.location if router not available
+      window.location.href = "/app/dashboard";
     }
   };
 
