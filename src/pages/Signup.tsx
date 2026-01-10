@@ -105,7 +105,10 @@ const Signup = () => {
       title: "Account created!",
       description: "Welcome to Ani-Digital. Let's get started!",
     });
-    router.push("/app/dashboard");
+    // Only use router if available (client-side)
+    if (typeof window !== "undefined" && router) {
+      router.push("/app/dashboard");
+    }
   };
 
   return (

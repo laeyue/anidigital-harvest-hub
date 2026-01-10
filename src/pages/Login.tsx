@@ -39,7 +39,10 @@ const Login = () => {
         description: "You have successfully logged in.",
         duration: 3000,
       });
-      router.push("/app/dashboard");
+      // Only use router if available (client-side)
+      if (typeof window !== "undefined" && router) {
+        router.push("/app/dashboard");
+      }
     }
   };
 

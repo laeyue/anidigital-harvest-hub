@@ -132,11 +132,11 @@ const Marketplace = () => {
 
   // Sync search query from URL params
   useEffect(() => {
-    const searchParam = router.query.search as string | undefined;
-    if (searchParam) {
+    if (typeof window !== "undefined" && router?.query?.search) {
+      const searchParam = router.query.search as string;
       setSearchQuery(decodeURIComponent(searchParam));
     }
-  }, [router.query]);
+  }, [router?.query]);
 
   const loadProducts = useCallback(async () => {
     setIsLoading(true);

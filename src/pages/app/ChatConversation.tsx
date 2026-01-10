@@ -39,7 +39,7 @@ interface ChatConversationProps {
 
 const ChatConversation = ({ conversationId: conversationIdProp }: ChatConversationProps = {}) => {
   const router = useRouter();
-  const conversationId = conversationIdProp || (router.query.conversationId as string);
+  const conversationId = conversationIdProp || (typeof window !== "undefined" && router?.query?.conversationId ? router.query.conversationId as string : undefined);
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);

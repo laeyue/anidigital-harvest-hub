@@ -82,7 +82,7 @@ interface ShopProps {
 
 const Shop = ({ shopId: shopIdProp }: ShopProps = {}) => {
   const router = useRouter();
-  const shopId = shopIdProp || (router.query.shopId as string);
+  const shopId = shopIdProp || (typeof window !== "undefined" && router?.query?.shopId ? router.query.shopId as string : undefined);
   const { user } = useAuth();
   const { toast } = useToast();
   const [shop, setShop] = useState<Shop | null>(null);

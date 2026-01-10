@@ -4,11 +4,13 @@ import { useEffect } from "react";
 
 const NotFound = () => {
   const router = useRouter();
-  const pathname = router.pathname;
 
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", pathname);
-  }, [pathname]);
+    // Only log on client-side
+    if (typeof window !== "undefined" && router) {
+      console.error("404 Error: User attempted to access non-existent route:", router.pathname);
+    }
+  }, [router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted">
@@ -24,3 +26,6 @@ const NotFound = () => {
 };
 
 export default NotFound;
+
+// Disable static optimization - 404 pages should be dynamic
+NotFound.getInitialProps = async () => ({});
