@@ -1,4 +1,3 @@
-"use client";
 
 import { GetServerSideProps } from "next";
 import { useEffect, useState } from "react";

@@ -1,5 +1,3 @@
-"use client";
-
 import { GetServerSideProps } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
