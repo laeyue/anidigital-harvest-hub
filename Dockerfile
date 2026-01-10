@@ -40,14 +40,26 @@ ENV NEXT_PUBLIC_ENABLE_DEBUG_LOGS=${NEXT_PUBLIC_ENABLE_DEBUG_LOGS:-false}
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy all necessary files for build
-COPY . .
+# Copy configuration files first
+COPY next.config.js ./
+COPY tsconfig.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+COPY components.json ./
 
-# Verify build files are present
-RUN ls -la
+# Copy source directories
+COPY app ./app
+COPY src ./src
+COPY public ./public
 
-# Build the application
-RUN npm run build
+# Copy any other necessary files
+COPY middleware.ts ./
+
+# Build the application with error output
+RUN npm run build || (echo "Build failed. Last 50 lines of output:" && tail -n 50 /tmp/build.log 2>/dev/null || echo "No build log found"; exit 1)
+
+# Verify standalone output exists
+RUN if [ ! -d ".next/standalone" ]; then echo "ERROR: .next/standalone directory not found"; ls -la .next/; exit 1; fi
 
 # Production stage
 FROM node:20-alpine AS runner
@@ -67,16 +79,12 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy public folder
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir -p .next
-RUN chown nextjs:nodejs .next
-
-# Copy standalone build output (these paths are created by Next.js standalone build)
+# Copy standalone build output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Verify server.js exists in standalone output
-RUN if [ ! -f server.js ]; then echo "ERROR: server.js not found in standalone output"; ls -la; exit 1; fi
+# Verify server.js exists
+RUN if [ ! -f server.js ]; then echo "ERROR: server.js not found"; ls -la; exit 1; fi
 
 USER nextjs
 
@@ -84,8 +92,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-
-# Note: NEXT_PUBLIC_* variables are embedded at build time
-# Server-side env vars can be passed at runtime via docker-compose environment section
 
 CMD ["node", "server.js"]

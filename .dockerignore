@@ -12,6 +12,8 @@ yarn-error.log
 .env.production
 
 # Build outputs (will be rebuilt in container)
+# Note: .next is needed for standalone output, but we exclude it during COPY
+# and only copy the built .next/standalone and .next/static
 .next
 dist
 out
