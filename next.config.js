@@ -5,8 +5,7 @@
 const path = require('path');
 const fs = require('fs');
 
-// Note: Both app/ (App Router) and src/pages/ (Pages Router) can coexist
-// Next.js will use App Router for routes in app/ and Pages Router for routes in src/pages/
+// Using Pages Router (src/pages/) only
 
 // Only try to load .env if it exists (for Docker builds, env vars come from build args)
 try {

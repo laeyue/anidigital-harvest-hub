@@ -52,9 +52,6 @@ COPY eslint.config.js ./
 COPY src ./src
 COPY public ./public
 
-# Copy app directory (App Router) - included if it exists
-COPY app ./app
-
 # Copy any other necessary files
 COPY middleware.ts ./
 
