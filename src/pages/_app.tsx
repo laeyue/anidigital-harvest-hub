@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { Providers } from "@/components/Providers";
 import AppLayout from "@/components/layout/AppLayout";
+import PublicLayout from "@/components/layout/PublicLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import "@/index.css";
 
@@ -16,6 +17,7 @@ function AppContent({ Component, pageProps }: AppProps) {
   const router = useRouter();
   
   const isAppRoute = router.pathname?.startsWith('/app') ?? false;
+  const isPublicRoute = !isAppRoute && router.pathname !== '/login' && router.pathname !== '/signup';
 
   useEffect(() => {
     setMounted(true);
@@ -48,7 +50,16 @@ function AppContent({ Component, pageProps }: AppProps) {
 
   const content = <Component {...pageProps} />;
 
-  return isAppRoute ? <AppLayout>{content}</AppLayout> : content;
+  // Wrap app routes with AppLayout, public routes with PublicLayout, auth pages with no layout
+  if (isAppRoute) {
+    return <AppLayout>{content}</AppLayout>;
+  }
+  
+  if (isPublicRoute) {
+    return <PublicLayout>{content}</PublicLayout>;
+  }
+  
+  return content;
 }
 
 export default function App(props: AppProps) {

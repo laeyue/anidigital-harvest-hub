@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode } from "react";
 import PublicNavbar from "./PublicNavbar";
 import Footer from "./Footer";

@@ -1,17 +1,14 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { Leaf, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 
 const Footer = () => {
-  const pathname = usePathname();
   const router = useRouter();
 
   const handleHashLink = (hash: string, e: React.MouseEvent) => {
     e.preventDefault();
     
-    if (pathname !== '/') {
+    if (router.pathname !== '/') {
       router.push('/');
       setTimeout(() => {
         const element = document.querySelector(hash);
@@ -67,31 +64,31 @@ const Footer = () => {
                 <Link href="/" className="text-white/70 hover:text-white transition-colors">Home</Link>
               </li>
               <li>
-                <a 
+                <Link 
                   href="/#features" 
                   onClick={(e) => handleHashLink('#features', e)}
                   className="text-white/70 hover:text-white transition-colors cursor-pointer"
                 >
                   Features
-                </a>
+                </Link>
               </li>
               <li>
-                <a 
+                <Link 
                   href="/#about" 
                   onClick={(e) => handleHashLink('#about', e)}
                   className="text-white/70 hover:text-white transition-colors cursor-pointer"
                 >
                   About
-                </a>
+                </Link>
               </li>
               <li>
-                <a 
+                <Link 
                   href="/#impact" 
                   onClick={(e) => handleHashLink('#impact', e)}
                   className="text-white/70 hover:text-white transition-colors cursor-pointer"
                 >
                   Impact
-                </a>
+                </Link>
               </li>
               <li>
                 <Link href="/login" className="text-white/70 hover:text-white transition-colors">Login</Link>

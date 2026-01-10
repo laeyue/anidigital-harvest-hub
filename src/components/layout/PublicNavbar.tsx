@@ -1,21 +1,18 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Leaf, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const PublicNavbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const pathname = usePathname();
   const router = useRouter();
 
   const handleHashLink = (hash: string, e: React.MouseEvent) => {
     e.preventDefault();
     setIsMenuOpen(false);
     
-    if (pathname !== '/') {
+    if (router.pathname !== '/') {
       router.push('/');
       setTimeout(() => {
         const element = document.querySelector(hash);
@@ -47,27 +44,27 @@ const PublicNavbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a 
+            <Link 
               href="/#features" 
               onClick={(e) => handleHashLink('#features', e)}
               className="text-muted-foreground hover:text-primary transition-colors font-medium cursor-pointer"
             >
               Features
-            </a>
-            <a 
+            </Link>
+            <Link 
               href="/#impact" 
               onClick={(e) => handleHashLink('#impact', e)}
               className="text-muted-foreground hover:text-primary transition-colors font-medium cursor-pointer"
             >
               Impact
-            </a>
-            <a 
+            </Link>
+            <Link 
               href="/#about" 
               onClick={(e) => handleHashLink('#about', e)}
               className="text-muted-foreground hover:text-primary transition-colors font-medium cursor-pointer"
             >
               About
-            </a>
+            </Link>
           </div>
 
           {/* Auth Buttons */}
@@ -93,27 +90,27 @@ const PublicNavbar = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
             <div className="flex flex-col gap-4">
-              <a
+              <Link
                 href="/#features"
                 onClick={(e) => handleHashLink('#features', e)}
                 className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2 cursor-pointer"
               >
                 Features
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#impact"
                 onClick={(e) => handleHashLink('#impact', e)}
                 className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2 cursor-pointer"
               >
                 Impact
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/#about"
                 onClick={(e) => handleHashLink('#about', e)}
                 className="text-muted-foreground hover:text-primary transition-colors font-medium px-2 py-2 cursor-pointer"
               >
                 About
-              </a>
+              </Link>
               <div className="flex gap-3 pt-4 border-t border-border">
                 <Button variant="outline" className="flex-1" asChild>
                   <Link href="/login">Log In</Link>
