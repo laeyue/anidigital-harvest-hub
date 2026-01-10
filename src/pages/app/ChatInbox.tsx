@@ -1,6 +1,5 @@
 import { GetServerSideProps } from "next";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +23,6 @@ interface Conversation {
 
 const ChatInbox = () => {
   const { user } = useAuth();
-  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -75,7 +73,11 @@ const ChatInbox = () => {
               {conversations.map((conv) => (
                 <button
                   key={conv.id}
-                  onClick={() => router.push(`/app/chat/${conv.id}`)}
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.location.href = `/app/chat/${conv.id}`;
+                    }
+                  }}
                   className="w-full flex items-center gap-3 py-3 hover:bg-muted/60 transition-colors text-left px-2 rounded-lg"
                 >
                   <Avatar className="w-10 h-10">
