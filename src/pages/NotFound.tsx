@@ -23,6 +23,3 @@ const NotFound = () => {
 };
 
 export default NotFound;
-
-// Disable static optimization - 404 pages should be dynamic
-NotFound.getInitialProps = async () => ({});
