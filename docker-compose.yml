@@ -10,25 +10,32 @@ services:
         # These are required at build time to be embedded in the client bundle
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        NEXT_PUBLIC_AGROMONITORING_API_KEY: ${NEXT_PUBLIC_AGROMONITORING_API_KEY}
-        NEXT_PUBLIC_PLANT_ID_API_KEY: ${NEXT_PUBLIC_PLANT_ID_API_KEY}
+        NEXT_PUBLIC_AGROMONITORING_API_KEY: ${NEXT_PUBLIC_AGROMONITORING_API_KEY:-}
+        NEXT_PUBLIC_PLANT_ID_API_KEY: ${NEXT_PUBLIC_PLANT_ID_API_KEY:-}
         NEXT_PUBLIC_ENABLE_DEBUG_LOGS: ${NEXT_PUBLIC_ENABLE_DEBUG_LOGS:-false}
     ports:
       - "9999:3000"
-    restart: always
+    restart: unless-stopped
     environment:
       # Pass environment variables at runtime (for server-side code)
       # NEXT_PUBLIC_* vars are embedded at build time, but can also be set here for consistency
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - NEXT_PUBLIC_AGROMONITORING_API_KEY=${NEXT_PUBLIC_AGROMONITORING_API_KEY}
-      - NEXT_PUBLIC_PLANT_ID_API_KEY=${NEXT_PUBLIC_PLANT_ID_API_KEY}
+      - NEXT_PUBLIC_AGROMONITORING_API_KEY=${NEXT_PUBLIC_AGROMONITORING_API_KEY:-}
+      - NEXT_PUBLIC_PLANT_ID_API_KEY=${NEXT_PUBLIC_PLANT_ID_API_KEY:-}
       - NEXT_PUBLIC_ENABLE_DEBUG_LOGS=${NEXT_PUBLIC_ENABLE_DEBUG_LOGS:-false}
-    # Optional: Use env_file if you have a .env file (not recommended for production)
-    # env_file:
-    #   - .env
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     # Labels for Portainer
     labels:
       - "com.docker.compose.project=anidigital-harvest-hub"
       - "com.docker.compose.service=web"
+      - "traefik.enable=false"
 
