@@ -55,15 +55,19 @@ COPY eslint.config.js ./
 COPY src ./src
 COPY public ./public
 
-# Verify critical page files exist before build
-RUN echo "Verifying page files..." && \
-    test -f src/pages/login.tsx && echo "✓ login.tsx found" || (echo "✗ login.tsx missing" && exit 1) && \
-    test -f src/pages/signup.tsx && echo "✓ signup.tsx found" || (echo "✗ signup.tsx missing" && exit 1) && \
-    test -f src/pages/index.tsx && echo "✓ index.tsx found" || (echo "✗ index.tsx missing" && exit 1) && \
-    echo "All critical page files verified"
-
 # Copy any other necessary files
 COPY middleware.ts ./
+
+# Verify critical page files exist before build (after all files are copied)
+RUN echo "Verifying page files..." && \
+    echo "Current directory: $(pwd)" && \
+    echo "Listing src/pages directory:" && \
+    ls -la src/pages/ || echo "src/pages directory not found" && \
+    echo "Checking for page files:" && \
+    ([ -f src/pages/login.tsx ] && echo "✓ login.tsx found") || (echo "✗ login.tsx missing" && ls -la src/pages/ | grep -i login || echo "No login files found" && exit 1) && \
+    ([ -f src/pages/signup.tsx ] && echo "✓ signup.tsx found") || (echo "✗ signup.tsx missing" && ls -la src/pages/ | grep -i signup || echo "No signup files found" && exit 1) && \
+    ([ -f src/pages/index.tsx ] && echo "✓ index.tsx found") || (echo "✗ index.tsx missing" && exit 1) && \
+    echo "All critical page files verified"
 
 # Increase Node.js memory limit for build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
