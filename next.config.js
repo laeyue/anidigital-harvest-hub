@@ -5,6 +5,14 @@
 const path = require('path');
 const fs = require('fs');
 
+// Check if app directory exists and warn (it should be excluded in Docker)
+const appDir = path.resolve(__dirname, 'app');
+if (fs.existsSync(appDir)) {
+  console.warn('⚠️  WARNING: app/ directory detected. Next.js will try to use App Router.');
+  console.warn('⚠️  We are using Pages Router (src/pages/). The app/ directory should be excluded.');
+  console.warn('⚠️  For local development, consider renaming the app/ directory to app.disabled/');
+}
+
 // Only try to load .env if it exists (for Docker builds, env vars come from build args)
 try {
   const envPath = path.resolve(__dirname, '.env');
