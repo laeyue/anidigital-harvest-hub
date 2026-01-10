@@ -7,10 +7,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import "@/index.css";
 
 export default function App({ Component, pageProps }: AppProps) {
-  const router = useRouter();
-  const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const isAppRoute = router.pathname?.startsWith('/app');
+  const [router, setRouter] = useState<any>(null);
+  const { user, loading } = useAuth();
+  
+  // Load router only after mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const { useRouter: useRouterHook } = require("next/router");
+      setRouter(useRouterHook());
+    }
+  }, []);
+  
+  const isAppRoute = router?.pathname?.startsWith('/app') ?? false;
 
   useEffect(() => {
     setMounted(true);
@@ -18,10 +27,10 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // Redirect to login if accessing app routes without auth (client-side check)
   useEffect(() => {
-    if (mounted && isAppRoute && !loading && !user) {
+    if (mounted && router && isAppRoute && !loading && !user) {
       router.push('/login');
     }
-  }, [mounted, isAppRoute, loading, user, router]);
+  }, [mounted, router, isAppRoute, loading, user]);
 
   // Show loading state during initial mount or auth check
   if (!mounted || (isAppRoute && loading)) {
