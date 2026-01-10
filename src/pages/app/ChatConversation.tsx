@@ -1,8 +1,6 @@
-"use client";
-
 import { GetServerSideProps } from "next";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,8 +38,8 @@ interface ChatConversationProps {
 }
 
 const ChatConversation = ({ conversationId: conversationIdProp }: ChatConversationProps = {}) => {
-  const params = useParams<{ conversationId?: string }>();
-  const conversationId = conversationIdProp || params?.conversationId;
+  const router = useRouter();
+  const conversationId = conversationIdProp || (router.query.conversationId as string);
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);

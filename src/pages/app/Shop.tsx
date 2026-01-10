@@ -31,9 +31,8 @@ import {
 } from "@/components/ui/select";
 import { MapPin, Mail, Star, ShoppingCart, Package, Edit2, Plus, Upload, X, MessageCircle, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -82,11 +81,10 @@ interface ShopProps {
 }
 
 const Shop = ({ shopId: shopIdProp }: ShopProps = {}) => {
-  const params = useParams<{ shopId?: string }>();
-  const shopId = shopIdProp || params?.shopId;
+  const router = useRouter();
+  const shopId = shopIdProp || (router.query.shopId as string);
   const { user } = useAuth();
   const { toast } = useToast();
-  const router = useRouter();
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);

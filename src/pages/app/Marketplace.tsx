@@ -1,5 +1,3 @@
-"use client";
-
 import { GetServerSideProps } from "next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,7 +100,6 @@ const ShopLink = ({ sellerId }: { sellerId: string }) => {
 
 const Marketplace = () => {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -135,11 +132,11 @@ const Marketplace = () => {
 
   // Sync search query from URL params
   useEffect(() => {
-    const searchParam = searchParams.get('search');
+    const searchParam = router.query.search as string | undefined;
     if (searchParam) {
       setSearchQuery(decodeURIComponent(searchParam));
     }
-  }, [searchParams]);
+  }, [router.query]);
 
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
