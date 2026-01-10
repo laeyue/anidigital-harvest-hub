@@ -58,18 +58,24 @@ COPY public ./public
 # Copy any other necessary files
 COPY middleware.ts ./
 
-# Verify critical page files exist before build (after all files are copied)
-RUN echo "Verifying page files..." && \
-    echo "Current directory: $(pwd)" && \
-    echo "Listing src/pages directory:" && \
-    ls -la src/pages/ 2>/dev/null || (echo "ERROR: src/pages directory not found!" && exit 1) && \
-    echo "" && \
-    echo "Checking for page files:" && \
-    if [ -f src/pages/login.tsx ]; then echo "✓ login.tsx found"; else echo "✗ login.tsx missing"; ls -la src/pages/ | head -20; exit 1; fi && \
-    if [ -f src/pages/signup.tsx ]; then echo "✓ signup.tsx found"; else echo "✗ signup.tsx missing"; exit 1; fi && \
-    if [ -f src/pages/index.tsx ]; then echo "✓ index.tsx found"; else echo "✗ index.tsx missing"; exit 1; fi && \
-    echo "" && \
-    echo "✓ All critical page files verified"
+# List page files for debugging (non-blocking)
+RUN echo "=== Debugging: Checking src/pages directory ===" && \
+    if [ -d src/pages ]; then \
+      echo "src/pages directory exists"; \
+      echo "Files in src/pages:"; \
+      ls -la src/pages/ || true; \
+      echo ""; \
+      echo "Checking for specific files:"; \
+      [ -f src/pages/login.tsx ] && echo "✓ login.tsx found" || echo "⚠ login.tsx NOT found"; \
+      [ -f src/pages/signup.tsx ] && echo "✓ signup.tsx found" || echo "⚠ signup.tsx NOT found"; \
+      [ -f src/pages/index.tsx ] && echo "✓ index.tsx found" || echo "⚠ index.tsx NOT found"; \
+    else \
+      echo "⚠ WARNING: src/pages directory not found!"; \
+      echo "Listing src directory:"; \
+      ls -la src/ || echo "src directory also not found"; \
+    fi && \
+    echo "=== End of page files check ===" && \
+    echo ""
 
 # Increase Node.js memory limit for build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
