@@ -1,0 +1,46 @@
+# Dependencies (will be installed in container)
+node_modules
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Environment files (use docker-compose or Portainer env vars instead)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Build outputs (will be rebuilt in container)
+.next
+dist
+out
+build
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage
+.nyc_output
+
+# Logs
+*.log
+logs
+
+# Docker files (not needed in container)
+docker-compose.yml
+.dockerignore
+
+
+
+
