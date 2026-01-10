@@ -45,6 +45,8 @@ COPY tsconfig.json ./
 COPY tailwind.config.ts ./
 COPY postcss.config.js ./
 COPY components.json ./
+COPY next-env.d.ts ./
+COPY eslint.config.js ./
 
 # Copy source directories
 COPY app ./app
