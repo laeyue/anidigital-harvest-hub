@@ -39,7 +39,6 @@ const categories = [
 ];
 import { Search, Plus, MapPin, Star, ShoppingCart, Filter, Store, Upload, X, MessageCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,7 +99,6 @@ const ShopLink = ({ sellerId }: { sellerId: string }) => {
 
 const Marketplace = () => {
   const { user } = useAuth();
-  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
