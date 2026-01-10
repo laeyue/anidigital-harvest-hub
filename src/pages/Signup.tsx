@@ -1,6 +1,5 @@
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,9 +30,17 @@ const Signup = () => {
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const router = useRouter();
+  const [router, setRouter] = useState<any>(null);
   const { toast } = useToast();
   const { signUp } = useAuth();
+  
+  // Load router only on client side after mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const { useRouter } = require("next/router");
+      setRouter(useRouter());
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,15 +114,15 @@ const Signup = () => {
     });
     // Navigate using router or window.location
     if (typeof window !== "undefined") {
-      try {
-        if (router.isReady) {
+      if (router && router.push) {
+        try {
           router.push("/app/dashboard");
-        } else {
-          // Fallback to window.location if router not ready
+        } catch (e) {
+          // Fallback if router throws error
           window.location.href = "/app/dashboard";
         }
-      } catch (e) {
-        // Fallback if router throws error
+      } else {
+        // Fallback to window.location if router not available
         window.location.href = "/app/dashboard";
       }
     }
