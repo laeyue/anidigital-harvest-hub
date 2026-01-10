@@ -39,7 +39,7 @@ const categories = [
 ];
 import { Search, Plus, MapPin, Star, ShoppingCart, Filter, Store, Upload, X, MessageCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
