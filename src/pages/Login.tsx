@@ -15,14 +15,11 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
   const { signIn } = useAuth();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  
+  // Use router hook - check isReady before using it
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,12 +41,14 @@ const Login = () => {
         description: "You have successfully logged in.",
         duration: 3000,
       });
-      // Only use router if available (client-side and mounted)
-      if (mounted && typeof window !== "undefined" && router) {
-        router.push("/app/dashboard");
-      } else if (typeof window !== "undefined") {
-        // Fallback to window.location if router not available
-        window.location.href = "/app/dashboard";
+      // Use router if ready, otherwise use window.location
+      if (typeof window !== "undefined") {
+        if (router.isReady) {
+          router.push("/app/dashboard");
+        } else {
+          // Fallback to window.location if router not ready
+          window.location.href = "/app/dashboard";
+        }
       }
     }
   };
