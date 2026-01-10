@@ -17,7 +17,8 @@ function AppContent({ Component, pageProps }: AppProps) {
   const router = useRouter();
   
   const isAppRoute = router.pathname?.startsWith('/app') ?? false;
-  const isPublicRoute = !isAppRoute && router.pathname !== '/login' && router.pathname !== '/signup';
+  const isAuthRoute = router.pathname === '/login' || router.pathname === '/signup';
+  const isPublicRoute = !isAppRoute && !isAuthRoute;
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +60,7 @@ function AppContent({ Component, pageProps }: AppProps) {
     return <PublicLayout>{content}</PublicLayout>;
   }
   
+  // Auth routes (login, signup) - no layout wrapper
   return content;
 }
 
