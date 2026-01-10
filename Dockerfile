@@ -31,7 +31,6 @@ ARG NEXT_PUBLIC_PLANT_ID_API_KEY
 ARG NEXT_PUBLIC_ENABLE_DEBUG_LOGS
 
 # Set environment variables for build (required for NEXT_PUBLIC_* to be embedded in client bundle)
-# Use empty strings as defaults to avoid undefined issues
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
 ENV NEXT_PUBLIC_AGROMONITORING_API_KEY=${NEXT_PUBLIC_AGROMONITORING_API_KEY:-}
@@ -40,7 +39,7 @@ ENV NEXT_PUBLIC_ENABLE_DEBUG_LOGS=${NEXT_PUBLIC_ENABLE_DEBUG_LOGS:-false}
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy configuration files first
+# Copy configuration files
 COPY next.config.js ./
 COPY tsconfig.json ./
 COPY tailwind.config.ts ./
@@ -55,11 +54,11 @@ COPY public ./public
 # Copy any other necessary files
 COPY middleware.ts ./
 
-# Build the application with error output
-RUN npm run build || (echo "Build failed. Last 50 lines of output:" && tail -n 50 /tmp/build.log 2>/dev/null || echo "No build log found"; exit 1)
+# Build the application
+RUN npm run build
 
 # Verify standalone output exists
-RUN if [ ! -d ".next/standalone" ]; then echo "ERROR: .next/standalone directory not found"; ls -la .next/; exit 1; fi
+RUN test -d .next/standalone || (echo "ERROR: .next/standalone directory not found" && ls -la .next/ && exit 1)
 
 # Production stage
 FROM node:20-alpine AS runner
@@ -84,7 +83,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Verify server.js exists
-RUN if [ ! -f server.js ]; then echo "ERROR: server.js not found"; ls -la; exit 1; fi
+RUN test -f server.js || (echo "ERROR: server.js not found" && ls -la && exit 1)
 
 USER nextjs
 
