@@ -8,16 +8,17 @@ import "@/index.css";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [mounted, setMounted] = useState(false);
-  const [router, setRouter] = useState<any>(null);
   const { user, loading } = useAuth();
   
-  // Load router only after mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const { useRouter: useRouterHook } = require("next/router");
-      setRouter(useRouterHook());
-    }
-  }, []);
+  // Must call useRouter() at top level - required by React hooks rules
+  // In Pages Router, this should work even during SSR
+  let router: ReturnType<typeof useRouter> | null = null;
+  try {
+    router = useRouter();
+  } catch (error) {
+    // Router not available during SSR - will handle gracefully
+    console.warn("Router not available in _app:", error);
+  }
   
   const isAppRoute = router?.pathname?.startsWith('/app') ?? false;
 

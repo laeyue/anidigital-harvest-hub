@@ -1,11 +1,12 @@
 import { GetServerSideProps } from "next";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -14,17 +15,18 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [router, setRouter] = useState<any>(null);
   const { toast } = useToast();
   const { signIn } = useAuth();
   
-  // Load router only on client side after mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const { useRouter } = require("next/router");
-      setRouter(useRouter());
-    }
-  }, []);
+  // Must call useRouter() at top level - required by React hooks rules
+  // In Pages Router, this should work even during SSR
+  let router: ReturnType<typeof useRouter> | null = null;
+  try {
+    router = useRouter();
+  } catch (error) {
+    // Router not available - will use window.location as fallback
+    console.warn("Router not available:", error);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
