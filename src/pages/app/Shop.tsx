@@ -1,5 +1,3 @@
-"use client";
-
 import { GetServerSideProps } from "next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
