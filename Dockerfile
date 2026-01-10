@@ -55,6 +55,13 @@ COPY eslint.config.js ./
 COPY src ./src
 COPY public ./public
 
+# Verify critical page files exist before build
+RUN echo "Verifying page files..." && \
+    test -f src/pages/login.tsx && echo "✓ login.tsx found" || (echo "✗ login.tsx missing" && exit 1) && \
+    test -f src/pages/signup.tsx && echo "✓ signup.tsx found" || (echo "✗ signup.tsx missing" && exit 1) && \
+    test -f src/pages/index.tsx && echo "✓ index.tsx found" || (echo "✗ index.tsx missing" && exit 1) && \
+    echo "All critical page files verified"
+
 # Copy any other necessary files
 COPY middleware.ts ./
 
