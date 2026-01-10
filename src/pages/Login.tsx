@@ -1,26 +1,28 @@
 import { GetServerSideProps } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-const Login = () => {
+// Client-side only component that uses router
+const LoginClient = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const { signIn } = useAuth();
   
-  // Must call useRouter() at top level unconditionally - required by React hooks rules
-  // In Pages Router, this should work even during SSR
-  const router = useRouter();
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,19 +44,9 @@ const Login = () => {
         description: "You have successfully logged in.",
         duration: 3000,
       });
-      // Navigate using router or window.location
+      // Navigate using window.location (safe for client-side)
       if (typeof window !== "undefined") {
-        try {
-          if (router.isReady) {
-            router.push("/app/dashboard");
-          } else {
-            // Fallback to window.location if router not ready
-            window.location.href = "/app/dashboard";
-          }
-        } catch {
-          // Fallback if router throws error
-          window.location.href = "/app/dashboard";
-        }
+        window.location.href = "/app/dashboard";
       }
     }
   };
@@ -124,6 +116,7 @@ const Login = () => {
                 </button>
               </div>
             </div>
+
             <Button type="submit" variant="hero" className="w-full" disabled={isLoading}>
               {isLoading ? "Logging in..." : "Log In"}
               <ArrowRight className="w-4 h-4" />
@@ -143,6 +136,11 @@ const Login = () => {
     </div>
   );
 };
+
+// Export dynamic component that only renders on client
+const Login = dynamic(() => Promise.resolve(LoginClient), {
+  ssr: false,
+});
 
 export default Login;
 

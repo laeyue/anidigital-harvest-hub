@@ -1,6 +1,6 @@
 import { GetServerSideProps } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,12 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Leaf, Mail, Lock, User, MapPin, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
-const Signup = () => {
+// Client-side only component
+const SignupClient = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -31,12 +32,13 @@ const Signup = () => {
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const { signUp } = useAuth();
   
-  // Must call useRouter() at top level unconditionally - required by React hooks rules
-  // In Pages Router, this should work even during SSR
-  const router = useRouter();
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,19 +110,9 @@ const Signup = () => {
       title: "Account created!",
       description: "Welcome to Ani-Digital. Let's get started!",
     });
-    // Navigate using router or window.location
+    // Navigate using window.location (safe for client-side)
     if (typeof window !== "undefined") {
-      try {
-        if (router.isReady) {
-          router.push("/app/dashboard");
-        } else {
-          // Fallback to window.location if router not ready
-          window.location.href = "/app/dashboard";
-        }
-      } catch {
-        // Fallback if router throws error
-        window.location.href = "/app/dashboard";
-      }
+      window.location.href = "/app/dashboard";
     }
   };
 
@@ -291,6 +283,11 @@ const Signup = () => {
     </div>
   );
 };
+
+// Export dynamic component that only renders on client
+const Signup = dynamic(() => Promise.resolve(SignupClient), {
+  ssr: false,
+});
 
 export default Signup;
 
