@@ -6,7 +6,8 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import "@/index.css";
 
-export default function App({ Component, pageProps }: AppProps) {
+// Inner component that uses auth - must be within Providers
+function AppContent({ Component, pageProps }: AppProps) {
   const [mounted, setMounted] = useState(false);
   const { user, loading } = useAuth();
   
@@ -30,30 +31,30 @@ export default function App({ Component, pageProps }: AppProps) {
   // Show loading state during initial mount or auth check
   if (!mounted || (isAppRoute && loading)) {
     return (
-      <Providers>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-        </div>
-      </Providers>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
     );
   }
 
   // If app route and not authenticated, don't render (will redirect)
   if (isAppRoute && !user) {
     return (
-      <Providers>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-        </div>
-      </Providers>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
     );
   }
 
   const content = <Component {...pageProps} />;
 
+  return isAppRoute ? <AppLayout>{content}</AppLayout> : content;
+}
+
+export default function App(props: AppProps) {
   return (
     <Providers>
-      {isAppRoute ? <AppLayout>{content}</AppLayout> : content}
+      <AppContent {...props} />
     </Providers>
   );
 }

@@ -1,5 +1,4 @@
-"use client";
-
+import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -316,3 +315,10 @@ const Landing = () => {
 };
 
 export default Landing;
+
+// Force dynamic rendering to prevent static generation
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

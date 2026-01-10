@@ -23,3 +23,10 @@ const NotFound = () => {
 };
 
 export default NotFound;
+
+// Force dynamic rendering to prevent static generation
+export const getServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};
