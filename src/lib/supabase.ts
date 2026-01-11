@@ -46,6 +46,22 @@ if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
   throw new Error(errorMsg);
 }
 
-// Create Supabase client
-export const supabase = createClient(trimmedUrl, trimmedKey);
+// Create Supabase client with explicit headers to avoid 406 errors
+export const supabase = createClient(trimmedUrl, trimmedKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+  global: {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'apikey': trimmedKey,
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+});
 
