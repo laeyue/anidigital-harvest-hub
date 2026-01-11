@@ -58,25 +58,6 @@ COPY public ./public
 # Copy any other necessary files
 COPY middleware.ts ./
 
-# List page files for debugging (non-blocking)
-RUN echo "=== Debugging: Checking src/pages directory ===" && \
-    if [ -d src/pages ]; then \
-      echo "src/pages directory exists"; \
-      echo "Files in src/pages:"; \
-      ls -la src/pages/ || true; \
-      echo ""; \
-      echo "Checking for specific files:"; \
-      [ -f src/pages/login.tsx ] && echo "✓ login.tsx found" || echo "⚠ login.tsx NOT found"; \
-      [ -f src/pages/signup.tsx ] && echo "✓ signup.tsx found" || echo "⚠ signup.tsx NOT found"; \
-      [ -f src/pages/index.tsx ] && echo "✓ index.tsx found" || echo "⚠ index.tsx NOT found"; \
-    else \
-      echo "⚠ WARNING: src/pages directory not found!"; \
-      echo "Listing src directory:"; \
-      ls -la src/ || echo "src directory also not found"; \
-    fi && \
-    echo "=== End of page files check ===" && \
-    echo ""
-
 # Increase Node.js memory limit for build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
